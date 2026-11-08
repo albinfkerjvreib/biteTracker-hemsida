@@ -1,4 +1,3 @@
-<!-- ... extracellular code -->
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -13,18 +12,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <script type="importmap">
-    {
-        "imports": {
-            "react": "https://esm.sh/react@18.2.0",
-            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-            "firebase/app": "https://esm.sh/firebase@10.8.1/app",
-            "firebase/auth": "https://esm.sh/firebase@10.8.1/auth",
-            "firebase/firestore": "https://esm.sh/firebase@10.8.1/firestore",
-            "lucide-react": "https://esm.sh/lucide-react@0.344.0?external=react"
-        }
-    }
-    </script>
+    <!-- Stabil Firebase Compat SDK (ersätter esm.sh för att slippa krascher) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+    <!-- React 18 och Lucide via UMD/globala skript för kompatibilitet -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -57,15 +54,21 @@
 
     <!-- Huvudappens startpunkt -->
     <div id="root"></div>
+
+    <!-- Dold felruta om något mot förmodan kraschar -->
+    <div id="app-error" style="display:none;" class="flex flex-col h-screen w-full items-center justify-center bg-slate-900 text-white p-6 fixed inset-0 z-[10000]">
+        <div class="bg-red-900/80 border border-red-500 p-6 rounded-3xl max-w-md text-center shadow-2xl">
+            <h3 class="text-xl font-bold text-red-200 mb-2">Kunde inte starta appen</h3>
+            <p id="error-message" class="text-xs text-red-100 mb-4">Ett oväntat fel uppstod när appen skulle laddas.</p>
+            <button onclick="window.location.reload()" class="bg-white text-red-900 font-bold px-5 py-2.5 rounded-xl text-xs shadow">
+                Försök igen
+            </button>
+        </div>
     </div>
 
-    <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useRef } from 'react';
-        import { createRoot } from 'react-dom/client';
-        import { initializeApp, getApps, getApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, doc, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-        import { Home, Bot, Map as MapIcon, Fish, Plus, Loader2, Navigation, Globe, Package, Trash2, Send, User, X, Compass, Trophy, Users, Settings, ShieldAlert, Heart, MessageSquare, BookOpen, CheckCircle, Anchor, MapPin, Sparkles } from 'lucide-react';
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { createRoot } = ReactDOM;
 
         const translations = {
           sv: {
@@ -86,18 +89,12 @@
         let parsedConfig = {};
         try { parsedConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {}; } catch (e) {}
         const firebaseConfig = parsedConfig.projectId ? parsedConfig : { apiKey: "demo", projectId: "demo", appId: "demo" };
-        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-        const auth = getAuth(app); const db = getFirestore(app);
+        
+        // Starta Firebase säkert med Compat
+        const app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
+        const auth = firebase.auth();
+        const db = firebase.firestore();
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        function FiskeAppen() {
-          const [user, setUser] = useState(null);
-          const [activeTab, setActiveTab] = useState('feed');
-          const [catches, setCatches] = useState([]);
-          const [globalFeed, setGlobalFeed] = useState([]);
-          const [lures, setLures] = useState([]);
-          const [profile, setProfile] = useState({ displayName: 'Fiskare' });
-          const [isLoadingAuth, setIsLoadingAuth] = useState(true);
           const [lang, setLang] = useState('sv');
           const [selectedLake, setSelectedLake] = useState(null);
           const [showAuthModal, setShowAuthModal] = useState(false);
