@@ -1,0 +1,17 @@
+{
+  "name": "BiteTracker",
+  "short_name": "BiteTracker",
+  "description": "Sveriges smartaste fiskeapp",
+  "start_url": "app.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#134e4a",
+  "icons": [
+    {
+      "src": "179412295382.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
