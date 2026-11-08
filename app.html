@@ -796,18 +796,21 @@
         }
 
 // Starta appen säkert med en krasch-spärr
-    try {
-        const rootElement = document.getElementById('root');
-        if (rootElement) {
-            createRoot(rootElement).render(<FiskeAppen />);
+        try {
+            const rootElement = document.getElementById('root');
+            if (rootElement) {
+                createRoot(rootElement).render(<FiskeAppen />);
+            }
+        } catch (err) {
+            console.error("Kunde inte starta appen:", err);
         }
-    } catch (err) {
-        console.error("Kunde inte starta appen:", err);
-    }
-    
-    // Tvinga bort laddningsskärmen omedelbart
-    const loader = document.getElementById('loading-screen');
-    if (loader) loader.remove();
+        
+        // Tvinga bort laddningsskärmen omedelbart när appen startar
+        const loader = document.getElementById('loading-screen');
+        if (loader) loader.remove();
+    </script>
+</body>
+</html>
     </script>
 </body>
 </html>
