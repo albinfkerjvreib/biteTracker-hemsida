@@ -32,7 +32,30 @@
     </style>
 </head>
 <body class="bg-slate-50 overflow-hidden text-slate-800">
-    <div id="root"></div>
+    <div id="root">
+        <!-- Riktigt snygg loading screen -->
+        <div class="flex flex-col h-screen w-full items-center justify-center bg-slate-900 fixed inset-0 z-[9999]">
+            <div class="relative flex flex-col items-center">
+                <!-- Animerad logga -->
+                <img src="179412295382.jpg" alt="BiteTracker Logo" class="w-28 h-28 rounded-3xl object-cover shadow-[0_0_40px_rgba(20,184,166,0.3)] animate-bounce border border-teal-800/50" />
+                
+                <!-- Laddnings-prickar -->
+                <div class="flex gap-2 mt-8">
+                    <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0s"></div>
+                    <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0.2s"></div>
+                    <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0.4s"></div>
+                </div>
+            </div>
+            
+            <!-- Text -->
+            <h2 class="text-3xl font-black tracking-tight mt-8 text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-300">
+                BiteTracker
+            </h2>
+            <p class="text-slate-400 text-sm mt-3 font-medium animate-pulse">
+                Gör redo beteslådan...
+            </p>
+        </div>
+    </div>
 
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef } from 'react';
