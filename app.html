@@ -95,9 +95,19 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-          const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
 
-          // PRO är aktivt om användaren INTE är anonym (dvs. har loggat in med e-post/konto)
+        // HUVUDKOMPONENT
+        function FiskeAppen() {
+          const [user, setUser] = useState(null);
+          const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+          const [activeTab, setActiveTab] = useState('feed');
+          const [catches, setCatches] = useState([]);
+          const [globalFeed, setGlobalFeed] = useState([]);
+          const [lures, setLures] = useState([]);
+          const [profile, setProfile] = useState({});
+          const [showAuthModal, setShowAuthModal] = useState(false);
+          const [lang, setLang] = useState('sv');
+          const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
           const isPro = user && !user.isAnonymous;
 
           const t = (key) => translations[lang]?.[key] || key;
