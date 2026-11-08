@@ -12,10 +12,6 @@
             <a href="#kontakt" class="hover:text-teal-600 transition">Kontakt</a>
         </div>
         <div class="flex items-center gap-3">
-            <!-- Direkt installationsknapp (visas automatiskt när enheten stöder det) -->
-            <button id="installBtn" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl shadow-md transition text-sm flex items-center gap-2">
-                <span>📲</span> Installera app
-            </button>
             <button onclick="showDownloadOptions()" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-5 py-2.5 rounded-xl shadow-md transition text-sm">
                 Ladda ner
             </button>
@@ -184,6 +180,15 @@
                 </div>
             </a>
 
+            <!-- Direktinstallation direkt från hemsidan (PWA) -->
+            <button id="modalInstallBtn" onclick="triggerInstall()" class="hidden flex items-center justify-center gap-3 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-4 rounded-2xl transition shadow">
+                <span class="text-2xl">📲</span>
+                <div class="text-left">
+                    <p class="text-[10px] text-emerald-200 uppercase tracking-wider">Snabb och direkt</p>
+                    <p class="text-sm font-bold">Installera direkt från webben</p>
+                </div>
+            </button>
+
             <!-- Work in progress alternativ -->
             <div onclick="showWipAlert()" class="flex items-center justify-center gap-3 w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold p-4 rounded-2xl border border-slate-200 cursor-pointer transition">
                 <span class="text-2xl">⏳</span>
@@ -216,7 +221,6 @@
         document.getElementById('downloadModal').classList.add('hidden');
     }
     function showWipAlert() {
-        document.getElementById('wipModal').classList.add('hidden');
         document.getElementById('wipModal').classList.remove('hidden');
     }
     function hideWipAlert() {
@@ -225,15 +229,16 @@
 
     // PWA Installationslogik
     let deferredPrompt;
-    const installBtn = document.getElementById('installBtn');
+    const modalInstallBtn = document.getElementById('modalInstallBtn');
 
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        installBtn.classList.remove('hidden');
+        // Visa knappen i nedladdningsrutan när enheten tillåter installation
+        modalInstallBtn.classList.remove('hidden');
     });
 
-    installBtn.addEventListener('click', async () => {
+    async function triggerInstall() {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
@@ -241,6 +246,7 @@
             console.log('Användaren installerade appen');
         }
         deferredPrompt = null;
-        installBtn.classList.add('hidden');
-    });
+        modalInstallBtn.classList.add('hidden');
+        hideDownloadOptions();
+    }
 </script>
