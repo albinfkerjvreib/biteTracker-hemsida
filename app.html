@@ -116,8 +116,8 @@
           useEffect(() => {
             const initAuth = async () => { try { await signInAnonymously(auth); } catch (error) {} setIsLoadingAuth(false); };
             initAuth();
-            const unsubscribe = onAuthStateChanged(auth, (currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
-            return () => unsubscribe();
+            const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
+return () => unsubscribe();
           }, []);
 
           useEffect(() => {
