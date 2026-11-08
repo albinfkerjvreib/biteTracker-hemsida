@@ -95,6 +95,17 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // Huvudkomponent
+        function FiskeAppen() {
+          const [user, setUser] = useState(null);
+          const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+          const [activeTab, setActiveTab] = useState('feed');
+          const [catches, setCatches] = useState([]);
+          const [globalFeed, setGlobalFeed] = useState([]);
+          const [lures, setLures] = useState([]);
+          const [profile, setProfile] = useState({});
+          const [showAuthModal, setShowAuthModal] = useState(false);
           const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
 
           // PRO är aktivt om användaren INTE är anonym (dvs. har loggat in med e-post/konto)
@@ -103,24 +114,65 @@
           const t = (key) => translations[lang]?.[key] || key;
           const currentTheme = themes[appTheme] || themes.blue;
 
+          // Säkerhets-timeout: Tvingar bort laddningsskärmen efter 3 sekunder om något hänger sig
           useEffect(() => {
-            const initAuth = async () => { try { await signInAnonymously(auth); } catch (error) {} setIsLoadingAuth(false); };
+            const fallbackTimer = setTimeout(() => {
+              setIsLoadingAuth(false);
+              const loader = document.getElementById('loading-screen');
+              if (loader) loader.remove();
+            }, 3000);
+            return () => clearTimeout(fallbackTimer);
+          }, []);
+
+          useEffect(() => {
+            const initAuth = async () => { 
+              try { 
+                await auth.signInAnonymously(); 
+              } catch (error) {} 
+              setIsLoadingAuth(false); 
+              const loader = document.getElementById('loading-screen');
+              if (loader) loader.remove();
+            };
             initAuth();
-            const unsubscribe = onAuthStateChanged(auth, (currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
+            const unsubscribe = auth.onAuthStateChanged((currentUser) => { 
+              setUser(currentUser); 
+              setIsLoadingAuth(false); 
+              const loader = document.getElementById('loading-screen');
+              if (loader) loader.remove();
+            });
             return () => unsubscribe();
           }, []);
 
           useEffect(() => {
             if (!user) return;
-            const catchesRef = collection(db, 'artifacts', appId, 'users', user.uid, 'catches');
-            const unsubC = onSnapshot(query(catchesRef), (snap) => { const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); setCatches(f); });
-            const globalRef = collection(db, 'artifacts', appId, 'public_feed');
-            const unsubG = onSnapshot(query(globalRef), (snap) => { const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); setGlobalFeed(f); });
-            const luresRef = collection(db, 'artifacts', appId, 'users', user.uid, 'lures');
-            const unsubL = onSnapshot(query(luresRef), (snap) => { const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); setLures(f); });
+            const catchesRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches');
+            const unsubC = catchesRef.onSnapshot((snap) => { 
+              const f = []; 
+              snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+              f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+              setCatches(f); 
+            });
 
-            const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-            const unsubP = onSnapshot(profileRef, (docSnap) => { if (docSnap.exists()) setProfile(docSnap.data()); });
+            const globalRef = db.collection('artifacts').doc(appId).collection('public_feed');
+            const unsubG = globalRef.onSnapshot((snap) => { 
+              const f = []; 
+              snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+              f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+              setGlobalFeed(f); 
+            });
+
+            const luresRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures');
+            const unsubL = luresRef.onSnapshot((snap) => { 
+              const f = []; 
+              snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+              f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+              setLures(f); 
+            });
+
+            const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
+            const unsubP = profileRef.onSnapshot((docSnap) => { 
+              if (docSnap.exists) setProfile(docSnap.data()); 
+            });
 
             return () => { unsubC(); unsubG(); unsubL(); unsubP(); };
           }, [user]);
@@ -150,13 +202,13 @@
               </header>
 
               <main className="flex-1 overflow-y-auto pb-20">
-                {activeTab === 'feed' && <FeedView globalFeed={globalFeed} user={user} t={t} currentTheme={currentTheme} isPro={isPro} setShowAuthModal={setShowAuthModal} />}
+                {activeTab === 'feed' && <FeedView globalFeed={globalFeed} user={user} t={t} currentTheme={currentTheme} isPro={isPro} setShowAuthModal={setShowAuthModal} db={db} appId={appId} />}
                 {activeTab === 'compete' && <CompetitionView globalFeed={globalFeed} t={t} currentTheme={currentTheme} />}
                 {activeTab === 'ai' && <AIChatView t={t} currentTheme={currentTheme} lures={lures} catches={catches} />}
-                {activeTab === 'map' && <MapView user={user} currentTheme={currentTheme} isPro={isPro} />}
-                {activeTab === 'log' && <CatchLogView user={user} t={t} currentTheme={currentTheme} profile={profile} />}
-                {activeTab === 'box' && <TackleBoxView user={user} lures={lures} t={t} currentTheme={currentTheme} />}
-                {activeTab === 'settings' && <SettingsView user={user} profile={profile} t={t} appTheme={appTheme} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} currentTheme={currentTheme} isPro={isPro} />}
+                {activeTab === 'map' && <MapView user={user} currentTheme={currentTheme} isPro={isPro} db={db} appId={appId} />}
+                {activeTab === 'log' && <CatchLogView user={user} t={t} currentTheme={currentTheme} profile={profile} db={db} appId={appId} />}
+                {activeTab === 'box' && <TackleBoxView user={user} lures={lures} t={t} currentTheme={currentTheme} db={db} appId={appId} />}
+                {activeTab === 'settings' && <SettingsView user={user} profile={profile} t={t} appTheme={appTheme} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} currentTheme={currentTheme} isPro={isPro} db={db} appId={appId} />}
               </main>
 
               <nav className="fixed bottom-0 w-full bg-white border-t border-slate-200 z-20 shadow">
@@ -171,7 +223,7 @@
                 </div>
               </nav>
 
-              {showAuthModal && <AuthModal user={user} onClose={() => setShowAuthModal(false)} t={t} currentTheme={currentTheme} />}
+              {showAuthModal && <AuthModal user={user} onClose={() => setShowAuthModal(false)} t={t} currentTheme={currentTheme} auth={auth} />}
             </div>
           );
         }
@@ -248,13 +300,13 @@
         }
 
         // Flöde
-        function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }) {
+        function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, db, appId }) {
           const handleLike = async (post) => {
             if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
-            const ref = doc(db, 'artifacts', appId, 'public_feed', post.id);
+            const ref = db.collection('artifacts').doc(appId).collection('public_feed').doc(post.id);
             const likes = post.likes || [];
-            if (likes.includes(user.uid)) await updateDoc(ref, { likes: arrayRemove(user.uid) });
-            else await updateDoc(ref, { likes: arrayUnion(user.uid) });
+            if (likes.includes(user.uid)) await ref.update({ likes: firebase.firestore.FieldValue.arrayRemove(user.uid) });
+            else await ref.update({ likes: firebase.firestore.FieldValue.arrayUnion(user.uid) });
           };
 
           return (
@@ -346,7 +398,7 @@
         }
 
         // Karta med sjöregler, förslag och privata bryggor
-        function MapView({ user, currentTheme, isPro }) {
+        function MapView({ user, currentTheme, isPro, db, appId }) {
           const [leafletLoaded, setLeafletLoaded] = useState(false);
           const mapRef = useRef(null);
           const mapInstance = useRef(null);
@@ -369,8 +421,8 @@
           const [privateType, setPrivateType] = useState('Brygga');
 
           useEffect(() => {
-            const ref = collection(db, 'artifacts', appId, 'approved_lakes');
-            return onSnapshot(ref, snap => {
+            const ref = db.collection('artifacts').doc(appId).collection('approved_lakes');
+            return ref.onSnapshot(snap => {
               const list = [];
               snap.forEach(d => list.push({ id: d.id, ...d.data() }));
               setApprovedLakes(list);
@@ -379,8 +431,8 @@
 
           useEffect(() => {
             if (!user || user.isAnonymous) return;
-            const ref = collection(db, 'artifacts', appId, 'users', user.uid, 'private_pins');
-            return onSnapshot(ref, snap => {
+            const ref = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins');
+            return ref.onSnapshot(snap => {
               const list = [];
               snap.forEach(d => list.push({ id: d.id, ...d.data() }));
               setPrivateMarkers(list);
@@ -453,14 +505,14 @@
           const handleSendSuggestion = async (e) => {
             e.preventDefault();
             if (!suggestName || !clickedCoords) return;
-            await addDoc(collection(db, 'artifacts', appId, 'lake_suggestions'), {
+            await db.collection('artifacts').doc(appId).collection('lake_suggestions').add({
               name: suggestName,
               rules: suggestRules || 'Inga angivna regler',
               fish: suggestFish || 'Diverse',
               lat: clickedCoords.lat,
               lng: clickedCoords.lng,
               status: 'pending',
-              createdAt: serverTimestamp()
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             setShowSuggestModal(false);
             setSuggestName(''); setSuggestRules(''); setSuggestFish('');
@@ -471,12 +523,12 @@
             e.preventDefault();
             if (!isPro) { alert("Du behöver vara inloggad (PRO) för att spara privata markeringar!"); return; }
             if (!privateTitle || !clickedCoords || !user) return;
-            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'private_pins'), {
+            await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').add({
               title: privateTitle,
               type: privateType,
               lat: clickedCoords.lat,
               lng: clickedCoords.lng,
-              createdAt: serverTimestamp()
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             setShowPrivateModal(false);
             setPrivateTitle('');
@@ -548,7 +600,7 @@
         }
 
         // Fångstlogg
-        function CatchLogView({ user, t, currentTheme, profile }) {
+        function CatchLogView({ user, t, currentTheme, profile, db, appId }) {
           const [species, setSpecies] = useState('');
           const [weight, setWeight] = useState('');
           const [length, setLength] = useState('');
@@ -560,9 +612,9 @@
           const handleSave = async (e) => {
             e.preventDefault();
             if (!species || !weight || !location) return;
-            const data = { species, weight: parseFloat(weight), length: length ? parseFloat(length) : null, lure, description, image, location, authorName: profile.displayName || 'Fiskare', createdAt: serverTimestamp() };
-            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'catches'), data);
-            await addDoc(collection(db, 'artifacts', appId, 'public_feed'), data);
+            const data = { species, weight: parseFloat(weight), length: length ? parseFloat(length) : null, lure, description, image, location, authorName: profile.displayName || 'Fiskare', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+            await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').add(data);
+            await db.collection('artifacts').doc(appId).collection('public_feed').add(data);
             setSpecies(''); setWeight(''); setLength(''); setLure(''); setDescription(''); setImage(null); setLocation('');
             alert("Fångsten sparad och delad i flödet!");
           };
@@ -587,11 +639,11 @@
         }
 
         // Beteslåda
-        function TackleBoxView({ user, lures, t, currentTheme }) {
+        function TackleBoxView({ user, lures, t, currentTheme, db, appId }) {
           const [name, setName] = useState(''); const [type, setType] = useState(''); const [color, setColor] = useState('');
           const handleAdd = async (e) => {
             e.preventDefault(); if (!name) return;
-            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'lures'), { name, type, color, createdAt: serverTimestamp() });
+            await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures').add({ name, type, color, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             setName(''); setType(''); setColor('');
           };
           return (
@@ -608,7 +660,7 @@
         }
 
         // Inställningar & Admin-panel
-        function SettingsView({ user, profile, t, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro }) {
+        function SettingsView({ user, profile, t, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro, db, appId }) {
           const [name, setName] = useState(profile.displayName || '');
           const [showPinModal, setShowPinModal] = useState(false);
           const [pinInput, setPinInput] = useState('');
@@ -617,8 +669,8 @@
 
           useEffect(() => {
             if (!isAdmin) return;
-            const ref = collection(db, 'artifacts', appId, 'lake_suggestions');
-            return onSnapshot(ref, snap => {
+            const ref = db.collection('artifacts').doc(appId).collection('lake_suggestions');
+            return ref.onSnapshot(snap => {
               const list = [];
               snap.forEach(d => list.push({ id: d.id, ...d.data() }));
               setPendingLakes(list.filter(l => l.status === 'pending'));
@@ -627,7 +679,7 @@
 
           const handleSaveName = async (e) => {
             e.preventDefault();
-            await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile'), { displayName: name }, { merge: true });
+            await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ displayName: name }, { merge: true });
             alert("Profil sparad!");
           };
 
@@ -644,20 +696,20 @@
           };
 
           const handleApproveLake = async (lake) => {
-            await addDoc(collection(db, 'artifacts', appId, 'approved_lakes'), {
+            await db.collection('artifacts').doc(appId).collection('approved_lakes').add({
               name: lake.name,
               rules: lake.rules,
               fish: lake.fish,
               lat: lake.lat,
               lng: lake.lng,
-              createdAt: serverTimestamp()
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            await deleteDoc(doc(db, 'artifacts', appId, 'lake_suggestions', lake.id));
+            await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(lake.id).delete();
             alert("Sjön godkänd och publicerad på kartan!");
           };
 
           const handleDeleteSuggestion = async (id) => {
-            await deleteDoc(doc(db, 'artifacts', appId, 'lake_suggestions', id));
+            await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(id).delete();
           };
 
           return (
@@ -722,7 +774,7 @@
         }
 
         // Inloggnings- och registreringsmodal med riktigt konto
-        function AuthModal({ user, onClose, t, currentTheme }) {
+        function AuthModal({ user, onClose, t, currentTheme, auth }) {
           const [email, setEmail] = useState('');
           const [password, setPassword] = useState('');
           const [isSignUp, setIsSignUp] = useState(false);
@@ -735,9 +787,9 @@
             setError('');
             try {
               if (isSignUp) {
-                await createUserWithEmailAndPassword(auth, email, password);
+                await auth.createUserWithEmailAndPassword(email, password);
               } else {
-                await signInWithEmailAndPassword(auth, email, password);
+                await auth.signInWithEmailAndPassword(email, password);
               }
               onClose();
             } catch (err) {
@@ -748,8 +800,8 @@
           };
 
           const handleLogout = async () => {
-            await signOut(auth);
-            await signInAnonymously(auth);
+            await auth.signOut();
+            await auth.signInAnonymously();
             onClose();
           };
 
@@ -791,7 +843,7 @@
           );
         }
 
-// Starta appen säkert med en krasch-spärr
+        // Starta appen säkert
         try {
             const rootElement = document.getElementById('root');
             if (rootElement) {
@@ -799,12 +851,9 @@
             }
         } catch (err) {
             console.error("Kunde inte starta appen:", err);
+            const errBox = document.getElementById('app-error');
+            if (errBox) errBox.style.display = 'flex';
         }
-        
-        // Tvinga bort laddningsskärmen omedelbart när appen startar
-        const loader = document.getElementById('loading-screen');
-        if (loader) loader.remove();
     </script>
 </body>
 </html>
-
