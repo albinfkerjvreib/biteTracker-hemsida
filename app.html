@@ -1,23 +1,51 @@
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiteTracker Pro</title>
+    <link rel="icon" type="image/jpeg" href="179412295382.jpg">
+    <link rel="apple-touch-icon" href="179412295382.jpg">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#134e4a">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Stabil Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
-<!-- Stabil Firebase Compat SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <!-- React 18 -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-<!-- React 18 -->
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      .leaflet-container { z-index: 0; outline: none; }
+    </style>
+</head>
+<body class="bg-slate-50 overflow-hidden text-slate-800">
+    <div id="loading-screen" class="flex flex-col h-screen w-full items-center justify-center bg-slate-900 fixed inset-0 z-[9999]">
+        <div class="relative flex flex-col items-center">
+            <img src="179412295382.jpg" alt="BiteTracker Logo" class="w-28 h-28 rounded-3xl object-cover shadow-[0_0_40px_rgba(20,184,166,0.3)] animate-bounce border border-teal-800/50">
+            <div class="flex gap-2 mt-8">
+                <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0s"></div>
+                <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0.2s"></div>
+                <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0.4s"></div>
+            </div>
+        </div>
+        <h1 class="text-3xl font-black tracking-tight mt-8 text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-300">
+            BiteTracker
+        </h1>
+        <p class="text-slate-400 text-sm mt-3 font-medium animate-pulse">
+            Gör redo beteslådan...
+        </p>
+    </div>
 
-<style>
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  .leaflet-container { z-index: 0; outline: none; }
-</style>
-
-
-<div id="root"></div>
+    <div id="root"></div>
 
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -54,13 +82,19 @@ const firebaseConfig = {
 
 const app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
 const auth = firebase.auth();
+
+// Sätt persistent inloggning (så man är inloggad på enheten tills man loggar ut)
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+  console.error("Kunde inte sätta inloggningspersistens:", err);
+});
+
 const db = firebase.firestore();
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 const translations = {
   sv: {
     appTitle: "BiteTracker", loggedIn: "Inloggad",
-    nav_feed: "Flöde", nav_ai: "AI", nav_map: "Karta", nav_log: "Fångster", nav_box: "Låda", nav_compete: "Tävling", nav_profile: "Profil", nav_settings: "Inställningar",
+    nav_feed: "Flöde", nav_ai: "AI", nav_map: "Karta", nav_log: "Fångster", nav_compete: "Tävling", nav_profile: "Profil",
     ai_title: "Fiske-AI", ai_placeholder: "Ställ en fiskefråga...", ai_thinking: "AI funderar..."
   }
 };
@@ -74,7 +108,7 @@ const themes = {
 const handleGoogleLogin = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
-    await auth.signInWithPopup(provider);
+    await auth.signInWithRedirect(provider);
   } catch (err) {
     console.error("Google-inloggning misslyckades:", err);
     alert("Kunde inte logga in med Google: " + err.message);
@@ -123,7 +157,6 @@ function AuthModal({ isOpen, onClose, user, currentTheme }) {
 
   const handleLogout = async () => {
     await auth.signOut();
-    await auth.signInAnonymously();
     onClose();
   };
 
@@ -247,25 +280,31 @@ function AIChatView({ t, currentTheme, lures, catches }) {
 // --- FLÖDE MED SMHI VÄDER ---
 function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }) {
   const [weather, setWeather] = useState(null);
+  const [weatherError, setWeatherError] = useState(false);
 
   useEffect(() => {
-    fetch('https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/18.0686/lat/59.3293/data.json')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.timeSeries && data.timeSeries.length > 0) {
-          const current = data.timeSeries[0];
-          const tempParam = current.parameters.find(p => p.name === 't');
-          const windParam = current.parameters.find(p => p.name === 'ws');
-          const pressureParam = current.parameters.find(p => p.name === 'msl');
-          setWeather({
-            temp: tempParam ? tempParam.values[0] : '--',
-            wind: windParam ? windParam.values[0] : '--',
-            pressure: pressureParam ? pressureParam.values[0] : '--',
-            forecasts: data.timeSeries.slice(0, 7)
-          });
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current_weather=true&daily=temperature_2m_max&timezone=Europe%2FBerlin');
+        if (!res.ok) throw new Error("Väder API misslyckades");
+        const data = await res.json();
+        if (data && data.current_weather) {
+            setWeather({
+              temp: data.current_weather.temperature,
+              wind: data.current_weather.windspeed,
+              pressure: 1012,
+              forecasts: data.daily ? data.daily.time.slice(0,7).map((time, index) => ({
+                validTime: time,
+                parameters: [{ name: 't', values: [data.daily.temperature_2m_max[index]] }]
+              })) : []
+            });
         }
-      })
-      .catch(err => console.error("Kunde inte hämta SMHI-väder:", err));
+      } catch (err) {
+        setWeatherError(true);
+        setWeather({ temp: 15, wind: 4.2, pressure: 1015, forecasts: [] });
+      }
+    };
+    fetchWeather();
   }, []);
 
   const handleLike = async (post) => {
@@ -288,13 +327,16 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
         </div>
       )}
 
-      {/* SMHI Väder & Fiskeprognos Widget */}
       <div className="bg-gradient-to-br from-teal-800 to-slate-900 text-white p-4 rounded-2xl shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-[10px] text-teal-300 uppercase tracking-widest font-black">SMHI Väder & Prognos</span>
-            <h3 className="font-bold text-base flex items-center gap-1.5"><SunIcon className="h-5 w-5 text-amber-400"/> {weather ? `${weather.temp}°C` : 'Laddar...'} • Vind {weather ? `${weather.wind} m/s` : ''}</h3>
+            <span className="text-[10px] text-teal-300 uppercase tracking-widest font-black">Väder & Prognos</span>
+            <h3 className="font-bold text-base flex items-center gap-1.5">
+                <SunIcon className="h-5 w-5 text-amber-400"/> 
+                {weather ? `${weather.temp}°C` : 'Laddar...'} • Vind {weather ? `${weather.wind} m/s` : ''}
+            </h3>
             <p className="text-xs text-slate-300 mt-0.5">Lufttryck: {weather ? `${weather.pressure} hPa` : 'Laddar...'}</p>
+            {weatherError && <p className="text-[9px] text-red-300 mt-1">Visar standardprognos (Offline)</p>}
           </div>
           <div className="bg-amber-400 text-slate-900 font-black px-3 py-2 rounded-xl text-center text-xs shadow">
             <span>🔥 Nappindex</span>
@@ -302,7 +344,7 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
           </div>
         </div>
 
-        {isPro && weather && weather.forecasts && (
+        {isPro && weather && weather.forecasts && weather.forecasts.length > 0 && (
           <div className="border-t border-teal-700/50 pt-2">
             <p className="text-[10px] font-bold text-teal-300 mb-1 uppercase">7-dagars PRO Prognos</p>
             <div className="grid grid-cols-7 gap-1 text-center">
@@ -369,7 +411,7 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
   );
 }
 
-// --- TÄVLINGAR & JOINA TÄVLING ---
+// --- TÄVLINGAR ---
 function CompetitionView({ globalFeed, user, t, currentTheme, isPro }) {
   const [competitions, setCompetitions] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -389,32 +431,40 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro }) {
   const handleCreateComp = async (e) => {
     e.preventDefault();
     if (!compTitle) return;
-    await db.collection('artifacts').doc(appId).collection('competitions').add({
-      title: compTitle,
-      target: compTarget,
-      creator: user?.email || 'Fiskare',
-      code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-      participants: [user?.uid || 'guest'],
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    setShowCreateModal(false);
-    setCompTitle('');
-    alert("Privat tävling skapad! Dela koden med dina kompisar.");
+    try {
+        await db.collection('artifacts').doc(appId).collection('competitions').add({
+        title: compTitle,
+        target: compTarget,
+        creator: user?.email || 'Fiskare',
+        code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+        participants: [user?.uid || 'guest'],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        setShowCreateModal(false);
+        setCompTitle('');
+        alert("Privat tävling skapad! Dela koden med dina kompisar.");
+    } catch(err) {
+        alert("Fel! Kolla att Firestore databas är aktiverad.");
+    }
   };
 
   const handleJoinComp = async (e) => {
     e.preventDefault();
     if (!joinCode) return;
-    const snap = await db.collection('artifacts').doc(appId).collection('competitions').where('code', '==', joinCode.toUpperCase()).get();
-    if (snap.empty) {
-      alert("Hittade ingen tävling med den koden.");
-    } else {
-      const doc = snap.docs[0];
-      await doc.ref.update({
-        participants: firebase.firestore.FieldValue.arrayUnion(user?.uid || 'guest')
-      });
-      alert(`Du har gått med i tävlingen: ${doc.data().title}!`);
-      setJoinCode('');
+    try {
+        const snap = await db.collection('artifacts').doc(appId).collection('competitions').where('code', '==', joinCode.toUpperCase()).get();
+        if (snap.empty) {
+        alert("Hittade ingen tävling med den koden.");
+        } else {
+        const doc = snap.docs[0];
+        await doc.ref.update({
+            participants: firebase.firestore.FieldValue.arrayUnion(user?.uid || 'guest')
+        });
+        alert(`Du har gått med i tävlingen: ${doc.data().title}!`);
+        setJoinCode('');
+        }
+    } catch(err) {
+        alert("Kunde inte ansluta till databasen.");
     }
   };
 
@@ -493,11 +543,21 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro }) {
   );
 }
 
-// --- PROFIL & BYTA PROFILBILD ---
-function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal }) {
+// --- PROFIL (MED BESKRIVNING, EGEN BETESLÅDA, FÅNGSTER OCH INSTÄLLNINGAR UPP TILL HÖGER) ---
+function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onOpenSettings, catches, lures }) {
+  const [bio, setBio] = useState(profile.bio || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [friends, setFriends] = useState([]);
+
+  // Beteslåda-formulär direkt i profilen
+  const [lureName, setLureName] = useState('');
+  const [lureType, setLureType] = useState('');
+  const [lureColor, setLureColor] = useState('');
+
+  useEffect(() => {
+    setBio(profile.bio || '');
+  }, [profile]);
 
   useEffect(() => {
     if (!user || user.isAnonymous) return;
@@ -509,50 +569,65 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal }) {
     });
   }, [user]);
 
+  const handleSaveBio = async (e) => {
+    e.preventDefault();
+    if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
+    try {
+      await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({
+        bio: bio
+      }, { merge: true });
+      alert("Beskrivning sparad!");
+    } catch(err) {
+      alert("Kunde inte spara beskrivning.");
+    }
+  };
+
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!user || user.isAnonymous) {
-      setShowAuthModal(true);
-      return;
-    }
+    if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
     const reader = new FileReader();
     reader.onloadend = async () => {
-      const base64Image = reader.result;
-      await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({
-        avatar: base64Image
-      }, { merge: true });
-      alert("Profilbild uppdaterad!");
+      try {
+          const base64Image = reader.result;
+          await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({
+            avatar: base64Image
+          }, { merge: true });
+          alert("Profilbild uppdaterad!");
+      } catch (err) {
+          alert("Fel vid sparande av profilbild.");
+      }
     };
     reader.readAsDataURL(file);
   };
 
-  const handleSearchFriends = async (e) => {
+  const handleAddLure = async (e) => {
     e.preventDefault();
-    if (!searchQuery) return;
-    const snap = await db.collection('artifacts').doc(appId).collection('users').get();
-    const list = [];
-    snap.forEach(doc => {
-      const data = doc.data();
-      if (doc.id !== user.uid) {
-        list.push({ id: doc.id, name: data.displayName || 'Fiskare' });
-      }
-    });
-    setSearchResults(list.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())));
-  };
-
-  const handleAddFriend = async (friend) => {
-    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('friends').doc(friend.id).set({
-      name: friend.name,
-      addedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    alert(`Lagt till ${friend.name} som vän!`);
+    if (!lureName) return;
+    if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
+    try {
+      await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures').add({
+        name: lureName,
+        type: lureType,
+        color: lureColor,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      setLureName(''); setLureType(''); setLureColor('');
+      alert("✅ Bete tillagt i lådan!");
+    } catch(err) {
+      alert("Kunde inte spara bete.");
+    }
   };
 
   return (
-    <div className="p-4 space-y-4 max-w-xl mx-auto">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border text-center space-y-3">
-        <div className="relative w-24 h-24 mx-auto group">
+    <div className="p-4 space-y-4 max-w-xl mx-auto pb-10">
+      {/* Topp med Inställningsknapp i högra hörnet */}
+      <div className="bg-white p-5 rounded-2xl shadow-sm border text-center space-y-3 relative">
+        <button onClick={onOpenSettings} className="absolute top-4 right-4 bg-slate-100 hover:bg-slate-200 p-2 rounded-full text-slate-700 shadow-sm transition">
+          <Settings className="h-5 w-5"/>
+        </button>
+
+        <div className="relative w-24 h-24 mx-auto group pt-2">
           {profile.avatar ? (
             <img src={profile.avatar} alt="Profilbild" className="w-24 h-24 rounded-full object-cover shadow border-2 border-teal-700" />
           ) : (
@@ -568,47 +643,71 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal }) {
 
         <h2 className={`text-xl font-bold ${currentTheme.text}`}>{profile.displayName || 'Inloggad Fiskare'}</h2>
         <p className="text-xs text-slate-500">{user?.email || (user?.isAnonymous ? 'Gäst-konto' : 'PRO-medlem')}</p>
+        
         {isPro ? (
           <span className="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full"><Sparkles className="inline h-3 w-3"/> PRO Medlem Aktiv</span>
         ) : (
           <button onClick={() => setShowAuthModal(true)} className="bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow">Logga in för PRO</button>
         )}
+
+        {/* Om mig / Beskrivning */}
+        <form onSubmit={handleSaveBio} className="pt-2 text-left space-y-2 border-t mt-4">
+          <label className="text-xs font-bold text-slate-700">Om mig / Fiske-beskrivning</label>
+          <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Skriv lite om dig själv och din fiskestil..." className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs outline-none h-16 resize-none" />
+          <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold py-2 rounded-xl text-xs shadow`}>Spara Beskrivning</button>
+        </form>
       </div>
 
+      {/* Beteslådan direkt på profilen */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-        <h3 className="font-bold text-sm text-slate-800 flex items-center gap-1.5"><UsersIcon className="h-5 w-5 text-teal-600"/> Sök & Lägg till Vänner</h3>
-        <form onSubmit={handleSearchFriends} className="flex gap-2">
-          <input type="text" placeholder="Sök efter fiskarkompis..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="flex-1 p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
-          <button type="submit" className={`${currentTheme.bg} text-white px-4 rounded-xl font-bold text-xs`}>Sök</button>
+        <h3 className="font-bold text-sm text-slate-800 flex items-center gap-1.5"><Package className="h-5 w-5 text-teal-700"/> Min Beteslåda ({lures.length})</h3>
+        <form onSubmit={handleAddLure} className="space-y-2">
+          <input type="text" placeholder="Betets namn..." value={lureName} onChange={e => setLureName(e.target.value)} required className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs" />
+          <div className="grid grid-cols-2 gap-2">
+            <input type="text" placeholder="Typ (t.ex. Wobbler)" value={lureType} onChange={e => setLureType(e.target.value)} className="p-2.5 bg-slate-50 border rounded-xl text-xs" />
+            <input type="text" placeholder="Färg" value={lureColor} onChange={e => setLureColor(e.target.value)} className="p-2.5 bg-slate-50 border rounded-xl text-xs" />
+          </div>
+          <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold py-2.5 rounded-xl text-xs`}>+ Lägg till bete</button>
         </form>
-
-        {searchResults.length > 0 && (
-          <div className="space-y-2 pt-2">
-            <p className="text-xs font-bold text-slate-400">Sökresultat:</p>
-            {searchResults.map(res => (
-              <div key={res.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl">
-                <span className="font-semibold text-sm">🎣 {res.name}</span>
-                <button onClick={() => handleAddFriend(res)} className="bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">Lägg till</button>
+        {lures.length > 0 && (
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            {lures.map(l => (
+              <div key={l.id} className="bg-slate-50 p-2.5 rounded-xl border text-xs">
+                <p className="font-bold text-slate-800">🎣 {l.name}</p>
+                <p className="text-[10px] text-slate-500">{l.type || 'Bete'} {l.color ? `• ${l.color}` : ''}</p>
               </div>
             ))}
           </div>
         )}
+      </div>
 
-        <div className="pt-2">
-          <p className="text-xs font-bold text-slate-400 mb-2">Dina Vänner ({friends.length}):</p>
-          {friends.length === 0 ? <p className="text-xs text-slate-500">Inga vänner tillagda ännu.</p> : friends.map(f => (
-            <div key={f.id} className="p-2.5 bg-emerald-50 text-emerald-900 rounded-xl font-semibold text-sm mb-1 flex items-center justify-between">
-              <span>👤 {f.name}</span>
-              <span className="text-[10px] bg-white px-2 py-1 rounded">Aktiv</span>
-            </div>
-          ))}
-        </div>
+      {/* Dina egna fångster */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
+        <h3 className="font-bold text-sm text-slate-800 flex items-center gap-1.5"><Fish className="h-5 w-5 text-teal-700"/> Dina Fångster ({catches.length})</h3>
+        {catches.length === 0 ? (
+          <p className="text-xs text-slate-400">Du har inte loggat några fångster ännu.</p>
+        ) : (
+          <div className="space-y-2">
+            {catches.map(c => (
+              <div key={c.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border text-xs">
+                <div>
+                  <p className="font-bold text-slate-800">🐟 {c.species}</p>
+                  <p className="text-[10px] text-slate-500">{c.location} {c.lure ? `• 🎣 ${c.lure}` : ''}</p>
+                </div>
+                <div className="text-right">
+                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">{c.weight} kg</span>
+                  {c.length && <span className="block text-[10px] text-slate-400 mt-0.5">{c.length} cm</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// --- KARTA MED TYDLIGARE SJÖFÖRSLAG ---
+// --- KARTA ---
 function MapView({ user, currentTheme, isPro }) {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef(null);
@@ -732,35 +831,43 @@ function MapView({ user, currentTheme, isPro }) {
   const handleSendSuggestion = async (e) => {
     e.preventDefault();
     if (!suggestName || !clickedCoords) return;
-    await db.collection('artifacts').doc(appId).collection('lake_suggestions').add({
-      name: suggestName,
-      rules: suggestRules || 'Inga angivna regler',
-      fish: suggestFish || 'Diverse',
-      lat: clickedCoords.lat,
-      lng: clickedCoords.lng,
-      status: 'pending',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    setShowSuggestModal(false);
-    setSuggestName(''); setSuggestRules(''); setSuggestFish(''); setClickedCoords(null);
-    alert("✅ Sjön har skickats in! Den har lagts till i granskningskön och kommer att synas på kartan så fort en admin godkänner den.");
+    try {
+        await db.collection('artifacts').doc(appId).collection('lake_suggestions').add({
+        name: suggestName,
+        rules: suggestRules || 'Inga angivna regler',
+        fish: suggestFish || 'Diverse',
+        lat: clickedCoords.lat,
+        lng: clickedCoords.lng,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        setShowSuggestModal(false);
+        setSuggestName(''); setSuggestRules(''); setSuggestFish(''); setClickedCoords(null);
+        alert("✅ Sjön har skickats in för granskning!");
+    } catch(err) {
+        alert("Kunde inte skicka in förslag.");
+    }
   };
 
   const handleSavePrivate = async (e) => {
     e.preventDefault();
     if (!isPro) { alert("Du behöver vara inloggad (PRO) för att spara privata markeringar!"); return; }
     if (!privateTitle || !clickedCoords || !user) return;
-    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').add({
-      title: privateTitle,
-      type: privateType,
-      lat: clickedCoords.lat,
-      lng: clickedCoords.lng,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    setShowPrivateModal(false);
-    setPrivateTitle(''); setClickedCoords(null);
-    alert("✅ Privat PRO-plats sparad på ditt konto!");
+    try {
+        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').add({
+        title: privateTitle,
+        type: privateType,
+        lat: clickedCoords.lat,
+        lng: clickedCoords.lng,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        setShowPrivateModal(false);
+        setPrivateTitle(''); setClickedCoords(null);
+        alert("✅ Privat PRO-plats sparad!");
+    } catch(err) {
+        alert("Kunde inte spara platsen.");
+    }
   };
 
   return (
@@ -785,7 +892,7 @@ function MapView({ user, currentTheme, isPro }) {
       {clickedCoords && !showSuggestModal && !showPrivateModal && (
         <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border z-[1000] max-w-xl mx-auto space-y-3">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-slate-800 text-sm">📍 Position vald ({clickedCoords.lat.toFixed(3)}, {clickedCoords.lng.toFixed(3)})</h3>
+            <h3 className="font-bold text-slate-800 text-sm">📍 Position vald</h3>
             <button onClick={() => setClickedCoords(null)} className="text-slate-400"><X className="h-5 w-5"/></button>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -803,7 +910,6 @@ function MapView({ user, currentTheme, isPro }) {
         <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
           <form onSubmit={handleSendSuggestion} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
             <h3 className="font-bold text-lg text-slate-800">Föreslå Sjökarta & Regler</h3>
-            <p className="text-xs text-slate-500">När du skickar in hamnar den i granskningskön och publiceras när den godkänts av admin.</p>
             <input type="text" placeholder="Sjöns namn" value={suggestName} onChange={e => setSuggestName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
             <input type="text" placeholder="Fiskarter (t.ex. Gädda, Abborre)" value={suggestFish} onChange={e => setSuggestFish(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
             <textarea placeholder="Regler & fiskekort info..." value={suggestRules} onChange={e => setSuggestRules(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-24 resize-none" />
@@ -836,7 +942,7 @@ function MapView({ user, currentTheme, isPro }) {
   );
 }
 
-// --- LOGGA FÅNGST (SPARAS PERMANENT I FIRESTORE) ---
+// --- LOGGA FÅNGST ---
 function CatchLogView({ user, t, currentTheme, profile }) {
   const [species, setSpecies] = useState('');
   const [weight, setWeight] = useState('');
@@ -850,25 +956,30 @@ function CatchLogView({ user, t, currentTheme, profile }) {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!species || !weight || !location) return;
-    const data = {
-      species,
-      weight: parseFloat(weight),
-      length: length ? parseFloat(length) : null,
-      lure,
-      description,
-      image,
-      location,
-      authorName: profile.displayName || 'Fiskare',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
+    
+    try {
+        const data = {
+        species,
+        weight: parseFloat(weight),
+        length: length ? parseFloat(length) : null,
+        lure,
+        description,
+        image,
+        location,
+        authorName: profile.displayName || 'Fiskare',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
 
-    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').add(data);
-    if (sharePublic) {
-      await db.collection('artifacts').doc(appId).collection('public_feed').add(data);
+        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').add(data);
+        if (sharePublic) {
+        await db.collection('artifacts').doc(appId).collection('public_feed').add(data);
+        }
+
+        setSpecies(''); setWeight(''); setLength(''); setLure(''); setDescription(''); setImage(null); setLocation('');
+        alert("✅ Fångsten sparad!");
+    } catch(err) {
+        alert("Ett fel uppstod vid sparande.");
     }
-
-    setSpecies(''); setWeight(''); setLength(''); setLure(''); setDescription(''); setImage(null); setLocation('');
-    alert(sharePublic ? "✅ Fångsten sparad och publicerad i flödet (och sparad på ditt konto)!" : "✅ Fångst sparad privat på ditt konto!");
   };
 
   return (
@@ -900,44 +1011,18 @@ function CatchLogView({ user, t, currentTheme, profile }) {
   );
 }
 
-// --- BETESLÅDAN (SPARAS PERMANENT I FIRESTORE) ---
-function TackleBoxView({ user, lures, t, currentTheme }) {
-  const [name, setName] = useState(''); const [type, setType] = useState(''); const [color, setColor] = useState('');
-  
-  const handleAdd = async (e) => {
-    e.preventDefault(); 
-    if (!name) return;
-    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures').add({ 
-      name, 
-      type, 
-      color, 
-      createdAt: firebase.firestore.FieldValue.serverTimestamp() 
-    });
-    setName(''); setType(''); setColor('');
-    alert("✅ Betet har sparats permanent i din beteslåda!");
-  };
-
-  return (
-    <div className="p-4 max-w-xl mx-auto space-y-4">
-      <div className="bg-white p-4 rounded-2xl shadow-sm border"><h2 className={`text-xl font-bold ${currentTheme.text}`}>Beteslådan</h2></div>
-      <form onSubmit={handleAdd} className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-        <input type="text" placeholder="Betets namn" value={name} onChange={e => setName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-        <input type="text" placeholder="Typ (t.ex. Jerkbait)" value={type} onChange={e => setType(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-        <input type="text" placeholder="Färg" value={color} onChange={e => setColor(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-        <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3 rounded-xl shadow`}>Lägg till i lådan</button>
-      </form>
-    </div>
-  );
-}
-
-// --- INSTÄLLNINGAR & PERMANENT ADMIN-LÄGE ---
-function SettingsView({ user, profile, t, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro }) {
+// --- INSTÄLLNINGAR (MODAL) ---
+function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro }) {
   const [name, setName] = useState(profile.displayName || '');
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
   
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bitetracker_admin') === 'true');
   const [pendingLakes, setPendingLakes] = useState([]);
+
+  useEffect(() => {
+    setName(profile.displayName || '');
+  }, [profile]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -949,10 +1034,16 @@ function SettingsView({ user, profile, t, appTheme, setAppTheme, setShowAuthModa
     });
   }, [isAdmin]);
 
+  if (!isOpen) return null;
+
   const handleSaveName = async (e) => {
     e.preventDefault();
-    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ displayName: name }, { merge: true });
-    alert("Profil sparad!");
+    try {
+        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ displayName: name }, { merge: true });
+        alert("Namn sparat!");
+    } catch(err) {
+        alert("Kunde inte spara namn.");
+    }
   };
 
   const handleCheckPin = (e) => {
@@ -962,16 +1053,10 @@ function SettingsView({ user, profile, t, appTheme, setAppTheme, setShowAuthModa
       localStorage.setItem('bitetracker_admin', 'true');
       setShowPinModal(false);
       setPinInput('');
-      alert("Admin-läge aktiverat permanent på denna enhet!");
+      alert("Admin-läge aktiverat!");
     } else {
       alert("Felaktig pinkod!");
     }
-  };
-
-  const handleLogoutAdmin = () => {
-    setIsAdmin(false);
-    localStorage.removeItem('bitetracker_admin');
-    alert("Admin-läge avaktiverat.");
   };
 
   const handleApproveLake = async (lake) => {
@@ -984,7 +1069,7 @@ function SettingsView({ user, profile, t, appTheme, setAppTheme, setShowAuthModa
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(lake.id).delete();
-    alert("Sjön godkänd och publicerad på kartan!");
+    alert("Sjön godkänd och publicerad!");
   };
 
   const handleDeleteSuggestion = async (id) => {
@@ -992,56 +1077,54 @@ function SettingsView({ user, profile, t, appTheme, setAppTheme, setShowAuthModa
   };
 
   return (
-    <div className="p-4 max-w-xl mx-auto space-y-4">
-      <div className="bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-between">
-        <h2 className={`text-xl font-bold ${currentTheme.text}`}>Inställningar</h2>
-        {isPro ? (
-          <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1"><Sparkles className="h-3.5 w-3.5"/> PRO Aktiv</span>
+    <div className="fixed inset-0 bg-black/60 z-[2500] flex items-center justify-center p-4">
+      <div className="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 relative max-h-[85vh] overflow-y-auto">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 bg-slate-100 p-1.5 rounded-full"><X className="h-5 w-5"/></button>
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Settings className="h-5 w-5"/> Inställningar</h2>
+
+        <form onSubmit={handleSaveName} className="space-y-2">
+          <label className="text-xs font-bold text-slate-700">Ditt Fiske-Namn</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+          <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold py-2.5 rounded-xl text-xs`}>Spara Namn</button>
+        </form>
+
+        <div className="space-y-2 pt-2 border-t">
+          <label className="text-xs font-bold text-slate-700">Välj App-Tema</label>
+          <div className="grid grid-cols-3 gap-2">
+            <button onClick={() => { setAppTheme('blue'); localStorage.setItem('bitetracker_theme', 'blue'); }} className={`p-2.5 rounded-xl font-bold text-white bg-blue-900 text-xs ${appTheme === 'blue' ? 'ring-2 ring-blue-900' : ''}`}>Blå</button>
+            <button onClick={() => { setAppTheme('teal'); localStorage.setItem('bitetracker_theme', 'teal'); }} className={`p-2.5 rounded-xl font-bold text-white bg-teal-700 text-xs ${appTheme === 'teal' ? 'ring-2 ring-teal-700' : ''}`}>Grön</button>
+            <button onClick={() => { setAppTheme('sunset'); localStorage.setItem('bitetracker_theme', 'sunset'); }} className={`p-2.5 rounded-xl font-bold text-white bg-amber-800 text-xs ${appTheme === 'sunset' ? 'ring-2 ring-amber-800' : ''}`}>Solnedgång</button>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t">
+          {!isPro ? (
+            <button onClick={() => { onClose(); setShowAuthModal(true); }} className="w-full bg-amber-500 text-white font-bold p-3 rounded-xl text-xs shadow">Logga in för PRO</button>
+          ) : (
+            <div className="text-center text-xs font-bold text-amber-700 bg-amber-50 p-2.5 rounded-xl">✨ PRO Medlem Aktiv</div>
+          )}
+        </div>
+
+        {!isAdmin ? (
+          <button onClick={() => setShowPinModal(true)} className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-xs">Admin-inloggning</button>
         ) : (
-          <button onClick={() => setShowAuthModal(true)} className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow">Logga in för PRO</button>
+          <div className="bg-slate-900 text-white p-3 rounded-xl space-y-2 text-xs">
+            <p className="font-bold text-amber-400">🛡️ Admin-panel (Väntande sjöar):</p>
+            {pendingLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga väntande sjöförslag.</p> : pendingLakes.map(l => (
+              <div key={l.id} className="bg-slate-800 p-2 rounded-lg space-y-1 border border-slate-700">
+                <p className="font-bold">🌊 {l.name}</p>
+                <div className="flex gap-1 pt-1">
+                  <button onClick={() => handleApproveLake(l)} className="flex-1 bg-emerald-600 text-white py-1 rounded text-[10px] font-bold">Godkänn</button>
+                  <button onClick={() => handleDeleteSuggestion(l.id)} className="flex-1 bg-red-600 text-white py-1 rounded text-[10px] font-bold">Neka</button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
-      
-      <form onSubmit={handleSaveName} className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-        <label className="text-xs font-bold text-slate-700">Ditt Fiske-Namn</label>
-        <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-        <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3 rounded-xl`}>Spara Namn</button>
-      </form>
-
-      <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-        <label className="text-xs font-bold text-slate-700">Välj App-Tema</label>
-        <div className="grid grid-cols-3 gap-2">
-          <button onClick={() => setAppTheme('blue')} className={`p-3 rounded-xl font-bold text-white bg-blue-900 ${appTheme === 'blue' ? 'ring-2 ring-offset-2 ring-blue-900' : ''}`}>Blå</button>
-          <button onClick={() => setAppTheme('teal')} className={`p-3 rounded-xl font-bold text-white bg-teal-700 ${appTheme === 'teal' ? 'ring-2 ring-offset-2 ring-teal-700' : ''}`}>Grön</button>
-          <button onClick={() => setAppTheme('sunset')} className={`p-3 rounded-xl font-bold text-white bg-amber-800 ${appTheme === 'sunset' ? 'ring-2 ring-offset-2 ring-amber-800' : ''}`}>Solnedgång</button>
-        </div>
-      </div>
-
-      {!isAdmin ? (
-        <button onClick={() => setShowPinModal(true)} className="w-full bg-slate-800 text-white font-bold p-4 rounded-2xl text-sm">Logga in i Admin-läge</button>
-      ) : (
-        <div className="bg-slate-900 text-white p-4 rounded-2xl space-y-3">
-          <div className="flex justify-between items-center">
-            <h3 className="font-bold text-amber-400 flex items-center gap-2"><ShieldAlert className="h-5 w-5"/> Admin-panel</h3>
-            <button onClick={handleLogoutAdmin} className="text-xs text-red-400 underline">Logga ut från Admin</button>
-          </div>
-          <p className="text-xs text-slate-400">Väntande sjöförslag:</p>
-          {pendingLakes.length === 0 ? <p className="text-xs text-slate-400">Inga väntande sjöförslag just nu.</p> : pendingLakes.map(l => (
-            <div key={l.id} className="bg-slate-800 p-3 rounded-xl space-y-2 border border-slate-700">
-              <p className="font-bold text-sm">🌊 {l.name}</p>
-              <p className="text-xs text-slate-300"><b>Regler:</b> {l.rules}</p>
-              <p className="text-xs text-slate-300"><b>Fisk:</b> {l.fish}</p>
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => handleApproveLake(l)} className="flex-1 bg-emerald-600 text-white p-2 rounded-lg text-xs font-bold">Godkänn</button>
-                <button onClick={() => handleDeleteSuggestion(l.id)} className="flex-1 bg-red-600 text-white p-2 rounded-lg text-xs font-bold">Neka</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {showPinModal && (
-        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
           <form onSubmit={handleCheckPin} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
             <h3 className="font-bold text-lg text-slate-800">Slå in Admin-kod</h3>
             <input type="password" placeholder="Pinkod..." value={pinInput} onChange={e => setPinInput(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm tracking-widest text-center" />
@@ -1074,6 +1157,7 @@ function FiskeAppen() {
   const [lures, setLures] = useState([]);
   const [profile, setProfile] = useState({});
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(true);
   const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
   const isPro = user && !user.isAnonymous;
@@ -1093,37 +1177,40 @@ function FiskeAppen() {
 
   useEffect(() => {
     if (!user) return;
-    
-    const catchesRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches');
-    const unsubC = catchesRef.onSnapshot((snap) => { 
-      const f = []; 
-      snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-      f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-      setCatches(f); 
-    });
-    
-    const globalRef = db.collection('artifacts').doc(appId).collection('public_feed');
-    const unsubG = globalRef.onSnapshot((snap) => { 
-      const f = []; 
-      snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-      f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-      setGlobalFeed(f); 
-    });
-    
-    const luresRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures');
-    const unsubL = luresRef.onSnapshot((snap) => { 
-      const f = []; 
-      snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-      f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-      setLures(f); 
-    }, (error) => {});
+    try {
+        const catchesRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches');
+        const unsubC = catchesRef.onSnapshot((snap) => { 
+        const f = []; 
+        snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+        f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+        setCatches(f); 
+        });
+        
+        const globalRef = db.collection('artifacts').doc(appId).collection('public_feed');
+        const unsubG = globalRef.onSnapshot((snap) => { 
+        const f = []; 
+        snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+        f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+        setGlobalFeed(f); 
+        });
+        
+        const luresRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures');
+        const unsubL = luresRef.onSnapshot((snap) => { 
+        const f = []; 
+        snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+        f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+        setLures(f); 
+        });
 
-    const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
-    const unsubP = profileRef.onSnapshot((docSnap) => { 
-      if (docSnap.exists) setProfile(docSnap.data()); 
-    });
+        const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
+        const unsubP = profileRef.onSnapshot((docSnap) => { 
+        if (docSnap.exists) setProfile(docSnap.data()); 
+        });
 
-    return () => { unsubC(); unsubG(); unsubL(); unsubP(); };
+        return () => { if(unsubC) unsubC(); if(unsubG) unsubG(); if(unsubL) unsubL(); if(unsubP) unsubP(); };
+    } catch(err) {
+        console.log("Databas ej redo yet.", err);
+    }
   }, [user]);
 
   if (isLoadingAuth) {
@@ -1156,25 +1243,23 @@ function FiskeAppen() {
         {activeTab === 'ai' && <AIChatView catches={catches} currentTheme={currentTheme} lures={lures} t={t}/>}
         {activeTab === 'map' && <MapView currentTheme={currentTheme} isPro={isPro} user={user}/>}
         {activeTab === 'log' && <CatchLogView currentTheme={currentTheme} profile={profile} t={t} user={user}/>}
-        {activeTab === 'box' && <TackleBoxView currentTheme={currentTheme} lures={lures} t={t} user={user}/>}
-        {activeTab === 'profile' && <ProfileView currentTheme={currentTheme} isPro={isPro} profile={profile} setShowAuthModal={setShowAuthModal} user={user}/>}
-        {activeTab === 'settings' && <SettingsView appTheme={appTheme} currentTheme={currentTheme} isPro={isPro} profile={profile} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} t={t} user={user}/>}
+        {activeTab === 'profile' && <ProfileView currentTheme={currentTheme} isPro={isPro} profile={profile} setShowAuthModal={setShowAuthModal} user={user} onOpenSettings={() => setShowSettingsModal(true)} catches={catches} lures={lures}/>}
       </main>
 
+      {/* RESTERAD BOTTENMENY UTAN LÅDA OCH INSTÄLLNINGAR */}
       <nav className="fixed bottom-0 w-full bg-white border-t border-slate-200 z-20 shadow">
-        <div className="flex justify-around items-center p-1.5 overflow-x-auto no-scrollbar">
+        <div className="flex justify-around items-center p-1.5">
           <NavItem Icon={Compass} isActive={activeTab === 'feed'} label={t('nav_feed')} onClick={() => setActiveTab('feed')} currentTheme={currentTheme} />
           <NavItem Icon={Trophy} isActive={activeTab === 'compete'} label={t('nav_compete')} onClick={() => setActiveTab('compete')} currentTheme={currentTheme} />
           <NavItem Icon={Bot} isActive={activeTab === 'ai'} label={t('nav_ai')} onClick={() => setActiveTab('ai')} currentTheme={currentTheme} />
           <NavItem Icon={MapComponent} isActive={activeTab === 'map'} label={t('nav_map')} onClick={() => setActiveTab('map')} currentTheme={currentTheme} />
           <NavItem Icon={Fish} isActive={activeTab === 'log'} label={t('nav_log')} onClick={() => setActiveTab('log')} currentTheme={currentTheme} />
-          <NavItem Icon={Package} isActive={activeTab === 'box'} label={t('nav_box')} onClick={() => setActiveTab('box')} currentTheme={currentTheme} />
           <NavItem Icon={User} isActive={activeTab === 'profile'} label={t('nav_profile')} onClick={() => setActiveTab('profile')} currentTheme={currentTheme} />
-          <NavItem Icon={Settings} isActive={activeTab === 'settings'} label={t('nav_settings')} onClick={() => setActiveTab('settings')} currentTheme={currentTheme} />
         </div>
       </nav>
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} user={user} currentTheme={currentTheme} />
+      <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} user={user} profile={profile} appTheme={appTheme} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} currentTheme={currentTheme} isPro={isPro} />
       <WelcomeProModal isOpen={showWelcomeModal && user?.isAnonymous} onClose={() => setShowWelcomeModal(false)} onLoginClick={() => setShowAuthModal(true)} />
     </div>
   );
@@ -1192,3 +1277,5 @@ try {
 const loader = document.getElementById('loading-screen');
 if (loader) loader.remove();
 </script>
+</body>
+</html>
