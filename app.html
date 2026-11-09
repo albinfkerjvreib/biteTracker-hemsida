@@ -95,7 +95,15 @@
 
         let parsedConfig = {};
         try { parsedConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {}; } catch (e) {}
-        const firebaseConfig = parsedConfig.projectId ? parsedConfig : { apiKey: "demo", projectId: "demo", appId: "demo" };
+      const firebaseConfig = {
+  apiKey: "AIzaSyBe5L_7VjdC8G23_G7aBgvjnQoJ_cQOjOw",
+  authDomain: "bitetracker-4b619.firebaseapp.com",
+  projectId: "bitetracker-4b619",
+  storageBucket: "bitetracker-4b619.firebasestorage.app",
+  messagingSenderId: "1056235073612",
+  appId: "1:1056235073612:web:cd10ff4baaf05293e604e9",
+  measurementId: "G-YFCHL4RPWB"
+};
         
         // Starta Firebase säkert med Compat
         const app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
