@@ -68,42 +68,212 @@
     </div>
 
 <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        const { createRoot } = ReactDOM;
-        const { User, Sparkles, Compass, Trophy, Bot, MapIcon, Fish, Package, Settings, Heart, Anchor, BookOpen, ShieldAlert, Loader2, Send, X } = lucide;
-// Logga in med Google
-const handleGoogleLogin = async () => {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await auth.signInWithPopup(provider);
-  } catch (err) {
-    console.error("Google-inloggning misslyckades:", err);
-    alert("Kunde inte logga in med Google.");
-  }
-};
 
-// Logga in / Registrera med E-post och lösenord
-const handleEmailAuth = async (email, password, isSignUp) => {
-  try {
-    if (isSignUp) {
-      await auth.createUserWithEmailAndPassword(email, password);
-    } else {
-      await auth.signInWithEmailAndPassword(email, password);
-    }
-  } catch (err) {
-    console.error("E-postinloggning misslyckades:", err);
-    alert("Ett fel uppstod: " + err.message);
-  }
-};
-        const translations = {
-          sv: {
-            appTitle: "BiteTracker", loggedIn: "Inloggad",
-            nav_feed: "Flöde", nav_ai: "AI", nav_map: "Karta", nav_log: "Fångster", nav_box: "Låda", nav_compete: "Tävling", nav_settings: "Inställningar",
-            ai_title: "Fiske-AI", ai_placeholder: "Ställ en fiskefråga...", ai_thinking: "AI funderar...",
-            auth_guest: "Gäst", auth_title: "Ditt Konto", auth_login: "Logga In", auth_signup: "Skapa Konto", auth_logout: "Logga Ut",
-            pro_active: "PRO-Medlem Aktiv ✨"
+        const { useState, useEffect, useRef } = React;
+
+        const { createRoot } = ReactDOM;
+
+        const { User, Sparkles, Compass, Trophy, Bot, MapIcon, Fish, Package, Settings, Heart, Anchor, BookOpen, ShieldAlert, Loader2, Send, X } = lucide;
+
+
+
+        // --- INLOGGNINGSFUNKTIONER ---
+
+        
+
+        // Logga in med Google
+
+        const handleGoogleLogin = async () => {
+
+          try {
+
+            const provider = new firebase.auth.GoogleAuthProvider();
+
+            await auth.signInWithPopup(provider);
+
+          } catch (err) {
+
+            console.error("Google-inloggning misslyckades:", err);
+
+            alert("Kunde inte logga in med Google.");
+
           }
+
         };
+
+
+
+        // Logga in / Registrera med E-post och lösenord
+
+        const handleEmailAuth = async (email, password, isSignUp) => {
+
+          try {
+
+            if (isSignUp) {
+
+              await auth.createUserWithEmailAndPassword(email, password);
+
+            } else {
+
+              await auth.signInWithEmailAndPassword(email, password);
+
+            }
+
+          } catch (err) {
+
+            console.error("E-postinloggning misslyckades:", err);
+
+            alert("Ett fel uppstod: " + err.message);
+
+          }
+
+        };
+
+
+
+        const translations = {
+
+          sv: {
+
+            appTitle: "BiteTracker", loggedIn: "Inloggad",
+
+            nav_feed: "Flöde", nav_ai: "AI", nav_map: "Karta", nav_log: "Fångster", nav_box: "Låda", nav_compete: "Tävling", nav_settings: "Inställningar",
+
+            ai_title: "Fiske-AI", ai_placeholder: "Ställ en fiskefråga...", ai_thinking: "AI funderar...",
+
+            auth_guest: "Gäst", auth_title: "Ditt Konto", auth_login: "Logga In", auth_signup: "Skapa Konto", auth_logout: "Logga Ut",
+
+            pro_active: "PRO-Medlem Aktiv ✨"
+
+          }
+
+        };
+
+
+
+        // --- AUTH MODAL KOMPONENT ---
+
+        function AuthModal({ isOpen, onClose, user, currentTheme }) {
+
+          const [isSignUp, setIsSignUp] = useState(false);
+
+          const [email, setEmail] = useState('');
+
+          const [password, setPassword] = useState('');
+
+          const [loading, setLoading] = useState(false);
+
+          const [error, setError] = useState(null);
+
+
+
+          if (!isOpen) return null;
+
+
+
+          return (
+
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[2000]">
+
+              <div className="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 relative shadow-2xl">
+
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 bg-slate-100 p-1.5 rounded-full"><X className="h-5 w-5" /></button>
+
+                
+
+                {user && !user.isAnonymous ? (
+
+                  <div className="space-y-4 text-center py-4">
+
+                    <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✨</div>
+
+                    <h3 className="text-xl font-bold text-slate-800">Du är PRO-medlem!</h3>
+
+                    <p className="text-xs text-slate-500">Inloggad som: <b>{user.email}</b></p>
+
+                    <button onClick={handleLogout} className="w-full bg-slate-100 text-red-600 font-bold p-3 rounded-xl text-sm">Logga ut</button>
+
+                  </div>
+
+                ) : (
+
+                  <form onSubmit={(e) => { e.preventDefault(); handleEmailAuth(email, password, isSignUp); }} className="space-y-3">
+
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-1.5"><Sparkles className="h-5 w-5 text-amber-500" /> {isSignUp ? 'Skapa PRO-konto' : 'Logga in för PRO'}</h3>
+
+                    <p className="text-xs text-slate-500">Få tillgång till privata kartmarkeringar och exklusiva funktioner direkt.</p>
+
+                    
+
+                    {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold">{error}</div>}
+
+                    
+
+                    {/* Google-inloggningsknapp */}
+
+                    <button 
+
+                      type="button" 
+
+                      onClick={handleGoogleLogin} 
+
+                      className="w-full bg-white border border-slate-300 text-slate-700 font-bold p-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
+
+                    >
+
+                      🌐 Logga in med Google
+
+                    </button>
+
+
+
+                    <div className="relative flex py-2 items-center">
+
+                      <div className="flex-grow border-t border-slate-200"></div>
+
+                      <span className="flex-shrink mx-4 text-slate-400 text-xs">eller med e-post</span>
+
+                      <div className="flex-grow border-t border-slate-200"></div>
+
+                    </div>
+
+
+
+                    <input type="email" placeholder="E-postadress" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
+
+                    <input type="password" placeholder="Lösenord (minst 6 tecken)" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
+
+                    
+
+                    <button type="submit" disabled={loading} className={`w-full ${currentTheme.bg} text-white font-bold p-3.5 rounded-xl shadow text-sm`}>
+
+                      {loading ? <Loader2 className="animate-spin h-5 w-5 mx-auto" /> : (isSignUp ? 'Skapa konto & Aktivera PRO' : 'Logga in & Aktivera PRO')}
+
+                    </button>
+
+
+
+                    <div className="text-center pt-2">
+
+                      <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-xs text-blue-600 font-semibold">
+
+                        {isSignUp ? 'Har du redan ett konto? Logga in här' : 'Inget konto? Skapa ett gratis här'}
+
+                      </button>
+
+                    </div>
+
+                  </form>
+
+                )}
+
+              </div>
+
+            </div>
+
+          );
+
+        } 
 
         const themes = {
           blue: { bg: 'bg-blue-900', text: 'text-blue-900', light: 'bg-blue-50' },
@@ -817,111 +987,7 @@ useEffect(() => {
             onClose();
           };
 
-<script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        const { createRoot } = ReactDOM;
-        const { User, Sparkles, Compass, Trophy, Bot, MapIcon, Fish, Package, Settings, Heart, Anchor, BookOpen, ShieldAlert, Loader2, Send, X } = lucide;
 
-        // --- INLOGGNINGSFUNKTIONER ---
-        
-        // Logga in med Google
-        const handleGoogleLogin = async () => {
-          try {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            await auth.signInWithPopup(provider);
-          } catch (err) {
-            console.error("Google-inloggning misslyckades:", err);
-            alert("Kunde inte logga in med Google.");
-          }
-        };
-
-        // Logga in / Registrera med E-post och lösenord
-        const handleEmailAuth = async (email, password, isSignUp) => {
-          try {
-            if (isSignUp) {
-              await auth.createUserWithEmailAndPassword(email, password);
-            } else {
-              await auth.signInWithEmailAndPassword(email, password);
-            }
-          } catch (err) {
-            console.error("E-postinloggning misslyckades:", err);
-            alert("Ett fel uppstod: " + err.message);
-          }
-        };
-
-        const translations = {
-          sv: {
-            appTitle: "BiteTracker", loggedIn: "Inloggad",
-            nav_feed: "Flöde", nav_ai: "AI", nav_map: "Karta", nav_log: "Fångster", nav_box: "Låda", nav_compete: "Tävling", nav_settings: "Inställningar",
-            ai_title: "Fiske-AI", ai_placeholder: "Ställ en fiskefråga...", ai_thinking: "AI funderar...",
-            auth_guest: "Gäst", auth_title: "Ditt Konto", auth_login: "Logga In", auth_signup: "Skapa Konto", auth_logout: "Logga Ut",
-            pro_active: "PRO-Medlem Aktiv ✨"
-          }
-        };
-
-        // --- AUTH MODAL KOMPONENT ---
-        function AuthModal({ isOpen, onClose, user, currentTheme }) {
-          const [isSignUp, setIsSignUp] = useState(false);
-          const [email, setEmail] = useState('');
-          const [password, setPassword] = useState('');
-          const [loading, setLoading] = useState(false);
-          const [error, setError] = useState(null);
-
-          if (!isOpen) return null;
-
-          return (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[2000]">
-              <div className="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 relative shadow-2xl">
-                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 bg-slate-100 p-1.5 rounded-full"><X className="h-5 w-5" /></button>
-                
-                {user && !user.isAnonymous ? (
-                  <div className="space-y-4 text-center py-4">
-                    <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✨</div>
-                    <h3 className="text-xl font-bold text-slate-800">Du är PRO-medlem!</h3>
-                    <p className="text-xs text-slate-500">Inloggad som: <b>{user.email}</b></p>
-                    <button onClick={handleLogout} className="w-full bg-slate-100 text-red-600 font-bold p-3 rounded-xl text-sm">Logga ut</button>
-                  </div>
-                ) : (
-                  <form onSubmit={(e) => { e.preventDefault(); handleEmailAuth(email, password, isSignUp); }} className="space-y-3">
-                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-1.5"><Sparkles className="h-5 w-5 text-amber-500" /> {isSignUp ? 'Skapa PRO-konto' : 'Logga in för PRO'}</h3>
-                    <p className="text-xs text-slate-500">Få tillgång till privata kartmarkeringar och exklusiva funktioner direkt.</p>
-                    
-                    {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold">{error}</div>}
-                    
-                    {/* Google-inloggningsknapp */}
-                    <button 
-                      type="button" 
-                      onClick={handleGoogleLogin} 
-                      className="w-full bg-white border border-slate-300 text-slate-700 font-bold p-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
-                    >
-                      🌐 Logga in med Google
-                    </button>
-
-                    <div className="relative flex py-2 items-center">
-                      <div className="flex-grow border-t border-slate-200"></div>
-                      <span className="flex-shrink mx-4 text-slate-400 text-xs">eller med e-post</span>
-                      <div className="flex-grow border-t border-slate-200"></div>
-                    </div>
-
-                    <input type="email" placeholder="E-postadress" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
-                    <input type="password" placeholder="Lösenord (minst 6 tecken)" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
-                    
-                    <button type="submit" disabled={loading} className={`w-full ${currentTheme.bg} text-white font-bold p-3.5 rounded-xl shadow text-sm`}>
-                      {loading ? <Loader2 className="animate-spin h-5 w-5 mx-auto" /> : (isSignUp ? 'Skapa konto & Aktivera PRO' : 'Logga in & Aktivera PRO')}
-                    </button>
-
-                    <div className="text-center pt-2">
-                      <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-xs text-blue-600 font-semibold">
-                        {isSignUp ? 'Har du redan ett konto? Logga in här' : 'Inget konto? Skapa ett gratis här'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-            </div>
-          );
-        }
-    </script>
 // Starta appen säkert med en krasch-spärr
         try {
             const rootElement = document.getElementById('root');
