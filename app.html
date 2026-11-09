@@ -71,7 +71,30 @@
         const { useState, useEffect, useRef } = React;
         const { createRoot } = ReactDOM;
         const { User, Sparkles, Compass, Trophy, Bot, MapIcon, Fish, Package, Settings, Heart, Anchor, BookOpen, ShieldAlert, Loader2, Send, X } = lucide;
+// Logga in med Google
+const handleGoogleLogin = async () => {
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch (err) {
+    console.error("Google-inloggning misslyckades:", err);
+    alert("Kunde inte logga in med Google.");
+  }
+};
 
+// Logga in / Registrera med E-post och lösenord
+const handleEmailAuth = async (email, password, isSignUp) => {
+  try {
+    if (isSignUp) {
+      await auth.createUserWithEmailAndPassword(email, password);
+    } else {
+      await auth.signInWithEmailAndPassword(email, password);
+    }
+  } catch (err) {
+    console.error("E-postinloggning misslyckades:", err);
+    alert("Ett fel uppstod: " + err.message);
+  }
+};
         const translations = {
           sv: {
             appTitle: "BiteTracker", loggedIn: "Inloggad",
