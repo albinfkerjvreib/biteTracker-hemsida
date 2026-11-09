@@ -217,8 +217,25 @@ function AIChatView({ t, currentTheme, lures, catches }) {
   );
 }
 
-// --- FLÖDE ---
+// --- FLÖDE MED ÄKTA VÄDERPROGNOS ---
 function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }) {
+  const [weather, setWeather] = useState(null);
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current_weather=true');
+        const data = await res.json();
+        if (data && data.current_weather) {
+          setWeather({ temp: data.current_weather.temperature, wind: data.current_weather.windspeed });
+        }
+      } catch (err) {
+        setWeather({ temp: 15, wind: 4.0 });
+      }
+    };
+    fetchWeather();
+  }, []);
+
   const handleLike = async (post) => {
     if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
     const ref = db.collection('artifacts').doc(appId).collection('public_feed').doc(post.id);
@@ -236,7 +253,10 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
         </div>
       )}
       <div className="bg-gradient-to-br from-teal-800 to-slate-900 text-white p-4 rounded-2xl shadow-sm flex items-center justify-between">
-        <div><span className="text-[10px] text-teal-300 font-black">VÄDER & NAPPINDEX</span><h3 className="font-bold text-base flex items-center gap-1.5"><SunIcon className="h-5 w-5 text-amber-400"/> 16°C • Vind 3.5 m/s</h3></div>
+        <div>
+          <span className="text-[10px] text-teal-300 font-black">VÄDER & NAPPINDEX (STOCKHOLM)</span>
+          <h3 className="font-bold text-base flex items-center gap-1.5"><SunIcon className="h-5 w-5 text-amber-400"/> {weather ? `${weather.temp}°C` : 'Laddar...'} • Vind {weather ? `${weather.wind} m/s` : ''}</h3>
+        </div>
         <div className="bg-amber-400 text-slate-900 font-black px-3 py-2 rounded-xl text-center text-xs"><span>🔥 Nappindex</span><span className="block text-sm">9/10</span></div>
       </div>
       <div className="space-y-4">
@@ -247,7 +267,9 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
             <div key={post.id} className="bg-white rounded-2xl shadow-sm border overflow-hidden">
               <div className="p-4 flex items-center justify-between border-b">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs">{post.authorName?.charAt(0) || 'F'}</div>
+                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs overflow-hidden">
+                    {post.avatar ? <img src={post.avatar} className="w-full h-full object-cover"/> : (post.authorName?.charAt(0) || 'F')}
+                  </div>
                   <div><span className="font-bold text-sm flex items-center gap-1">{post.authorName || 'Fiskare'} {post.isOG && <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-1.5 py-0.2 rounded-full">🏆 OG</span>}</span><span className="text-[10px] text-slate-400">{post.location}</span></div>
                 </div>
                 <span className="bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-bold">{post.species}</span>
@@ -266,7 +288,7 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
   );
 }
 
-// --- TÄVLINGAR MED TID, TYP OCH SKICKA IN BIDRAG ---
+// --- TÄVLINGAR ---
 function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches }) {
   const [competitions, setCompetitions] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -276,8 +298,8 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches }) 
 
   const [compTitle, setCompTitle] = useState('');
   const [compTarget, setCompTarget] = useState('Gädda');
-  const [compType, setCompType] = useState('weight'); // 'weight' eller 'length'
-  const [compDuration, setCompDuration] = useState('7'); // dagar
+  const [compType, setCompType] = useState('weight');
+  const [compDuration, setCompDuration] = useState('7');
   const [joinCode, setJoinCode] = useState('');
 
   useEffect(() => {
@@ -332,13 +354,12 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches }) 
 
     const compRef = db.collection('artifacts').doc(appId).collection('competitions').doc(selectedComp.id);
     const existing = selectedComp.submissions || [];
-    // Ersätt eller lägg till användarens bidrag
     const filtered = existing.filter(s => s.userId !== user.uid);
     filtered.push(submission);
 
     await compRef.update({ submissions: filtered });
     setShowSubmitModal(false); setSelectedComp(null); setSelectedCatchId('');
-    alert("✅ Bidrag skickat till tävlingen!");
+    alert("✅ Bidrag skickat!");
   };
 
   return (
@@ -356,7 +377,7 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches }) 
       {competitions.map(c => {
         const isExpired = Date.now() > c.expiresAt;
         const subs = c.submissions || [];
-        subs.sort((a, b) => b.value - a.value); // Högst vinner
+        subs.sort((a, b) => b.value - a.value);
         const winner = subs.length > 0 ? subs[0] : null;
 
         return (
@@ -372,7 +393,6 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches }) 
               <span className="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-1 rounded-lg">{c.code}</span>
             </div>
 
-            {/* Vinnare / Resultat */}
             {isExpired && winner && (
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-center space-y-1">
                 <span className="text-amber-800 font-bold text-xs block">🥇 VINNARE AV TÄVLINGEN!</span>
@@ -382,7 +402,7 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches }) 
 
             <div className="space-y-1 pt-2 border-t">
               <p className="text-xs font-bold text-slate-500">Ställning:</p>
-              {subs.length === 0 ? <p className="text-xs text-slate-400">Inga inskickade bidrag ännu.</p> : subs.map((s, idx) => (
+              {subs.length === 0 ? <p className="text-xs text-slate-400">Inga bidrag ännu.</p> : subs.map((s, idx) => (
                 <div key={idx} className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-lg">
                   <span>#{idx+1} {s.userName}</span>
                   <span className="font-bold text-emerald-700">{s.value} {c.type === 'weight' ? 'kg' : 'cm'}</span>
@@ -408,10 +428,10 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches }) 
               <option value="Gädda">Gädda</option><option value="Abborre">Abborre</option><option value="Gös">Gös</option>
             </select>
             <select value={compType} onChange={e => setCompType(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-              <option value="weight">Största fisken (Vikt i kg)</option><option value="length">Längsta fisken (Längd i cm)</option>
+              <option value="weight">Största fisken (Vikt)</option><option value="length">Längsta fisken (Längd)</option>
             </select>
             <select value={compDuration} onChange={e => setCompDuration(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-              <option value="1">1 dag</option><option value="3">3 dagar</option><option value="7">7 dagar (1 vecka)</option><option value="30">30 dagar (1 månad)</option>
+              <option value="1">1 dag</option><option value="3">3 dagar</option><option value="7">7 dagar</option><option value="30">30 dagar</option>
             </select>
             <div className="flex gap-2">
               <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-sm font-bold">Avbryt</button>
@@ -424,11 +444,11 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches }) 
       {showSubmitModal && (
         <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
           <form onSubmit={handleSubmitCatch} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-            <h3 className="font-bold text-lg text-slate-800">Välj fångst att skicka in</h3>
-            {catches.length === 0 ? <p className="text-xs text-slate-500">Du har inga sparade fångster att skicka in. Logga en fångst först!</p> : (
+            <h3 className="font-bold text-lg text-slate-800">Välj fångst</h3>
+            {catches.length === 0 ? <p className="text-xs text-slate-500">Inga sparade fångster.</p> : (
               <select value={selectedCatchId} onChange={e => setSelectedCatchId(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-                <option value="">-- Välj din fångst --</option>
-                {catches.map(c => <option key={c.id} value={c.id}>{c.species} - {c.weight}kg ({c.length ? c.length+'cm' : 'ingen längd'})</option>)}
+                <option value="">-- Välj fångst --</option>
+                {catches.map(c => <option key={c.id} value={c.id}>{c.species} - {c.weight} kg</option>)}
               </select>
             )}
             <div className="flex gap-2">
@@ -442,7 +462,7 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches }) 
   );
 }
 
-// --- PROFIL ---
+// --- PROFIL (MED BILDUPPLADDNING, BIO OCH INSTÄLLNINGAR UPP TILL HÖGER) ---
 function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onOpenSettings, catches, lures }) {
   const [bio, setBio] = useState(profile.bio || '');
   const [lureName, setLureName] = useState('');
@@ -451,19 +471,63 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
 
   useEffect(() => { setBio(profile.bio || ''); }, [profile]);
 
+  const handleSaveBio = async (e) => {
+    e.preventDefault();
+    if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ bio }, { merge: true });
+    alert("Beskrivning sparad!");
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Image = reader.result;
+      await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ avatar: base64Image }, { merge: true });
+      alert("Profilbild uppdaterad!");
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="p-4 space-y-4 max-w-xl mx-auto pb-10">
       <div className="bg-white p-5 rounded-2xl shadow-sm border text-center space-y-3 relative">
-        <button onClick={onOpenSettings} className="absolute top-4 right-4 bg-slate-100 p-2 rounded-full text-slate-700 shadow-sm"><Settings className="h-5 w-5"/></button>
-        <div className="w-24 h-24 bg-teal-100 text-teal-800 rounded-full flex items-center justify-center text-3xl font-black mx-auto shadow border-2 border-teal-700">
-          {profile.displayName ? profile.displayName.charAt(0) : '👤'}
+        <button onClick={onOpenSettings} className="absolute top-4 right-4 bg-slate-100 hover:bg-slate-200 p-2 rounded-full text-slate-700 shadow-sm transition">
+          <Settings className="h-5 w-5"/>
+        </button>
+
+        <div className="relative w-24 h-24 mx-auto group pt-2">
+          {profile.avatar ? (
+            <img src={profile.avatar} alt="Profilbild" className="w-24 h-24 rounded-full object-cover shadow border-2 border-teal-700" />
+          ) : (
+            <div className="w-24 h-24 bg-teal-100 text-teal-800 rounded-full flex items-center justify-center text-3xl font-black shadow border-2 border-teal-700">
+              {profile.displayName ? profile.displayName.charAt(0) : '👤'}
+            </div>
+          )}
+          <label className="absolute bottom-0 right-0 bg-teal-700 text-white p-1.5 rounded-full cursor-pointer shadow hover:bg-teal-800 text-xs">
+            📷<input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+          </label>
         </div>
+
         <h2 className={`text-xl font-bold ${currentTheme.text} flex items-center justify-center gap-1.5`}>
           {profile.displayName || 'Inloggad Fiskare'}
-          {profile.isOG && <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full">🏆 OG</span>}
+          {profile.isOG && <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow">🏆 OG Medlem</span>}
         </h2>
         <p className="text-xs text-slate-500">{user?.email || 'Gäst-konto'}</p>
-        {isPro ? <span className="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full"><Sparkles className="inline h-3 w-3"/> PRO Medlem</span> : <button onClick={() => setShowAuthModal(true)} className="bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl">Logga in för PRO</button>}
+        
+        {isPro ? (
+          <span className="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full"><Sparkles className="inline h-3 w-3"/> PRO Medlem Aktiv</span>
+        ) : (
+          <button onClick={() => setShowAuthModal(true)} className="bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow">Logga in för PRO</button>
+        )}
+
+        <form onSubmit={handleSaveBio} className="pt-2 text-left space-y-2 border-t mt-4">
+          <label className="text-xs font-bold text-slate-700">Om mig / Fiske-beskrivning</label>
+          <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Skriv lite om dig själv..." className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs outline-none h-16 resize-none" />
+          <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold py-2 rounded-xl text-xs shadow`}>Spara Beskrivning</button>
+        </form>
       </div>
 
       <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
@@ -495,7 +559,7 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
   );
 }
 
-// --- KARTA MED VAL AV KARTVY ---
+// --- KARTA MED INSTRUKTIONER OCH VALBAR VY ---
 function MapView({ user, currentTheme, isPro }) {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef(null);
@@ -503,7 +567,7 @@ function MapView({ user, currentTheme, isPro }) {
   const markersLayer = useRef(null);
   const tileLayerRef = useRef(null);
 
-  const [mapStyle, setMapStyle] = useState('topo'); // 'topo', 'satellite', 'depth'
+  const [mapStyle, setMapStyle] = useState('topo');
   const [approvedLakes, setApprovedLakes] = useState([]);
   const [privateMarkers, setPrivateMarkers] = useState([]);
   const [globalCatches, setGlobalCatches] = useState([]);
@@ -584,8 +648,10 @@ function MapView({ user, currentTheme, isPro }) {
 
   return (
     <div className="relative w-full h-[calc(100vh-140px)]">
-      {/* Kart-väljare & Filter */}
       <div className="absolute top-4 left-4 right-4 z-[400] max-w-xl mx-auto space-y-2">
+        <div className="bg-teal-900/90 text-white p-2 rounded-xl text-[11px] text-center shadow font-semibold">
+          💡 Tryck var som helst på kartan för att skicka in sjöförslag eller spara privatslots!
+        </div>
         <div className="flex gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-lg border text-xs font-bold">
           <button onClick={() => setShowLakes(!showLakes)} className={`flex-1 py-1 rounded-xl ${showLakes ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>🌊 Sjöar</button>
           <button onClick={() => setShowCatches(!showCatches)} className={`flex-1 py-1 rounded-xl ${showCatches ? 'bg-emerald-600 text-white' : 'bg-slate-100'}`}>🐟 Fångster</button>
@@ -615,11 +681,16 @@ function MapView({ user, currentTheme, isPro }) {
           <form onSubmit={async (e) => {
             e.preventDefault();
             await db.collection('artifacts').doc(appId).collection('lake_suggestions').add({ name: suggestName, rules: suggestRules || 'Standard', fish: suggestFish || 'Diverse', lat: clickedCoords.lat, lng: clickedCoords.lng, status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            setShowSuggestModal(false); setClickedCoords(null); alert("Sjö inskickad!");
+            setShowSuggestModal(false); setClickedCoords(null); alert("Sjö inskickad för granskning!");
           }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
             <h3 className="font-bold text-lg">Föreslå Sjö</h3>
             <input type="text" placeholder="Sjöns namn" value={suggestName} onChange={e => setSuggestName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <button type="submit" className="w-full bg-teal-700 text-white p-3 rounded-xl font-bold text-sm">Skicka</button>
+            <input type="text" placeholder="Fiskarter (t.ex. Gädda)" value={suggestFish} onChange={e => setSuggestFish(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            <textarea placeholder="Regler..." value={suggestRules} onChange={e => setSuggestRules(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-20 resize-none" />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowSuggestModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
+              <button type="submit" className="flex-1 bg-teal-700 text-white p-3 rounded-xl text-xs font-bold">Skicka in</button>
+            </div>
           </form>
         </div>
       )}
@@ -632,8 +703,11 @@ function MapView({ user, currentTheme, isPro }) {
             setShowPrivateModal(false); setClickedCoords(null); alert("Privat plats sparad!");
           }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
             <h3 className="font-bold text-lg">Spara Privat Markör</h3>
-            <input type="text" placeholder="Titel" value={privateTitle} onChange={e => setPrivateTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <button type="submit" className="w-full bg-amber-600 text-white p-3 rounded-xl font-bold text-sm">Spara</button>
+            <input type="text" placeholder="Titel (t.ex. Bryggan)" value={privateTitle} onChange={e => setPrivateTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowPrivateModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
+              <button type="submit" className="flex-1 bg-amber-600 text-white p-3 rounded-xl text-xs font-bold">Spara</button>
+            </div>
           </form>
         </div>
       )}
@@ -641,7 +715,7 @@ function MapView({ user, currentTheme, isPro }) {
   );
 }
 
-// --- LOGGA FÅNGST MED MINI-KARTA ---
+// --- LOGGA FÅNGST MED MINIKARTA ---
 function CatchLogView({ user, t, currentTheme, profile }) {
   const [species, setSpecies] = useState('');
   const [weight, setWeight] = useState('');
@@ -650,11 +724,10 @@ function CatchLogView({ user, t, currentTheme, profile }) {
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [location, setLocation] = useState('');
-  const [coords, setCoords] = useState({ lat: 59.3293, lng: 18.0686 }); // Standard Stockholm
+  const [coords, setCoords] = useState({ lat: 59.3293, lng: 18.0686 });
 
   const miniMapRef = useRef(null);
   const miniMapInstance = useRef(null);
-  const miniMarkerRef = useRef(null);
 
   useEffect(() => {
     if (!window.L || !miniMapRef.current || miniMapInstance.current) return;
@@ -666,14 +739,12 @@ function CatchLogView({ user, t, currentTheme, profile }) {
       const pos = e.target.getLatLng();
       setCoords({ lat: pos.lat, lng: pos.lng });
     });
-
     map.on('click', (e) => {
       marker.setLatLng(e.latlng);
       setCoords({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
 
     miniMapInstance.current = map;
-    miniMarkerRef.current = marker;
   }, []);
 
   const handleSave = async (e) => {
@@ -684,12 +755,13 @@ function CatchLogView({ user, t, currentTheme, profile }) {
         species, weight: parseFloat(weight), length: length ? parseFloat(length) : null,
         lure, description, image, location, lat: coords.lat, lng: coords.lng,
         authorName: profile.displayName || 'Fiskare', isOG: profile.isOG || false,
+        avatar: profile.avatar || null,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').add(data);
       await db.collection('artifacts').doc(appId).collection('public_feed').add(data);
       setSpecies(''); setWeight(''); setLength(''); setLure(''); setDescription(''); setImage(null); setLocation('');
-      alert("✅ Fångst sparad och publicerad på kartan!");
+      alert("✅ Fångst sparad och publicerad!");
     } catch(err) { alert("Fel vid sparande."); }
   };
 
@@ -705,9 +777,8 @@ function CatchLogView({ user, t, currentTheme, profile }) {
         <input type="text" placeholder="Bete / Drag" value={lure} onChange={e => setLure(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
         <input type="text" placeholder="Plats / Sjö (skriv namn)" value={location} onChange={e => setLocation(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
 
-        {/* MINIKARTA FÖR ATT VÄLJA EXAKT POSITION */}
         <div className="space-y-1">
-          <label className="text-xs font-bold text-slate-700">Dra markören på minikartan för att sätta exakt position:</label>
+          <label className="text-xs font-bold text-slate-700">Placera ut markören på minikartan:</label>
           <div ref={miniMapRef} className="w-full h-40 rounded-xl border shadow-inner z-0" />
         </div>
 
@@ -719,26 +790,101 @@ function CatchLogView({ user, t, currentTheme, profile }) {
   );
 }
 
-// --- INSTÄLLNINGAR MODAL ---
+// --- INSTÄLLNINGAR & ADMIN-PANEL (PINKOD 6031) ---
 function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro }) {
   const [name, setName] = useState(profile.displayName || '');
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bitetracker_admin') === 'true');
+  const [pendingLakes, setPendingLakes] = useState([]);
+
+  useEffect(() => { setName(profile.displayName || ''); }, [profile]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    db.collection('artifacts').doc(appId).collection('lake_suggestions').onSnapshot(snap => {
+      const list = []; snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      setPendingLakes(list.filter(l => l.status === 'pending'));
+    });
+  }, [isAdmin]);
+
   if (!isOpen) return null;
+
+  const handleSaveName = async (e) => {
+    e.preventDefault();
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ displayName: name }, { merge: true });
+    alert("Namn sparat!");
+  };
+
+  const handleApproveLake = async (lake) => {
+    await db.collection('artifacts').doc(appId).collection('approved_lakes').add({
+      name: lake.name, rules: lake.rules, fish: lake.fish, lat: lake.lat, lng: lake.lng, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(lake.id).delete();
+    alert("Sjö godkänd!");
+  };
+
+  const handleDeleteSuggestion = async (id) => {
+    await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(id).delete();
+    alert("Förslag borttaget.");
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 z-[2500] flex items-center justify-center p-4">
-      <div className="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 relative">
+      <div className="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 relative max-h-[85vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 bg-slate-100 p-1.5 rounded-full"><X className="h-5 w-5"/></button>
         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Settings className="h-5 w-5"/> Inställningar</h2>
-        <form onSubmit={async (e) => { e.preventDefault(); await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ displayName: name }, { merge: true }); alert("Namn sparat!"); }} className="space-y-2">
+
+        <form onSubmit={handleSaveName} className="space-y-2">
           <label className="text-xs font-bold text-slate-700">Ditt Fiske-Namn</label>
           <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-          <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold py-2 rounded-xl text-xs`}>Spara</button>
+          <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold py-2.5 rounded-xl text-xs`}>Spara Namn</button>
         </form>
-        <div className="grid grid-cols-3 gap-2 pt-2 border-t">
-          <button onClick={() => { setAppTheme('blue'); localStorage.setItem('bitetracker_theme', 'blue'); }} className="p-2 rounded-xl text-white bg-blue-900 text-xs">Blå</button>
-          <button onClick={() => { setAppTheme('teal'); localStorage.setItem('bitetracker_theme', 'teal'); }} className="p-2 rounded-xl text-white bg-teal-700 text-xs">Grön</button>
-          <button onClick={() => { setAppTheme('sunset'); localStorage.setItem('bitetracker_theme', 'sunset'); }} className="p-2 rounded-xl text-white bg-amber-800 text-xs">Solnedgång</button>
+
+        <div className="space-y-2 pt-2 border-t">
+          <label className="text-xs font-bold text-slate-700">Välj Tema</label>
+          <div className="grid grid-cols-3 gap-2">
+            <button onClick={() => { setAppTheme('blue'); localStorage.setItem('bitetracker_theme', 'blue'); }} className="p-2.5 rounded-xl font-bold text-white bg-blue-900 text-xs">Blå</button>
+            <button onClick={() => { setAppTheme('teal'); localStorage.setItem('bitetracker_theme', 'teal'); }} className="p-2.5 rounded-xl font-bold text-white bg-teal-700 text-xs">Grön</button>
+            <button onClick={() => { setAppTheme('sunset'); localStorage.setItem('bitetracker_theme', 'sunset'); }} className="p-2.5 rounded-xl font-bold text-white bg-amber-800 text-xs">Solnedgång</button>
+          </div>
         </div>
+
+        <div className="pt-2 border-t">
+          {!isPro ? (
+            <button onClick={() => { onClose(); setShowAuthModal(true); }} className="w-full bg-amber-500 text-white font-bold p-3 rounded-xl text-xs shadow">Logga in för PRO</button>
+          ) : (
+            <div className="text-center text-xs font-bold text-amber-700 bg-amber-50 p-2.5 rounded-xl">✨ PRO Aktiv</div>
+          )}
+        </div>
+
+        {!isAdmin ? (
+          <button onClick={() => setShowPinModal(true)} className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-xs">Admin-inloggning</button>
+        ) : (
+          <div className="bg-slate-900 text-white p-3 rounded-xl space-y-2 text-xs">
+            <p className="font-bold text-amber-400">🛡️ Admin-panel (Väntande sjöar):</p>
+            {pendingLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga väntande sjöar.</p> : pendingLakes.map(l => (
+              <div key={l.id} className="bg-slate-800 p-2 rounded space-y-1">
+                <p className="font-bold">🌊 {l.name}</p>
+                <div className="flex gap-1">
+                  <button onClick={() => handleApproveLake(l)} className="flex-1 bg-emerald-600 py-1 rounded text-[10px] font-bold">Godkänn</button>
+                  <button onClick={() => handleDeleteSuggestion(l.id)} className="flex-1 bg-red-600 py-1 rounded text-[10px] font-bold">Neka</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {showPinModal && (
+        <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
+          <form onSubmit={(e) => { e.preventDefault(); if(pinInput === '6031') { setIsAdmin(true); localStorage.setItem('bitetracker_admin', 'true'); setShowPinModal(false); alert("Admin aktiverat!"); } else alert("Fel pinkod!"); }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
+            <h3 className="font-bold text-lg">Pinkod</h3>
+            <input type="password" placeholder="Pinkod..." value={pinInput} onChange={e => setPinInput(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-center" />
+            <button type="submit" className="w-full bg-slate-900 text-white p-3 rounded-xl font-bold text-sm">Lås upp</button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
