@@ -789,7 +789,9 @@ Fråga: ${userMsg}`;
               snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
               f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
               setLures(f); 
-            }).catch(() => {});
+            }, (error) => {
+              console.log("Lures snapshot error:", error);
+            });
 
             const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
             const unsubP = profileRef.onSnapshot((docSnap) => { 
