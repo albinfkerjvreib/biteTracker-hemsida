@@ -752,7 +752,7 @@ useEffect(() => {
           );
         }
 
-        // Inloggnings- och registreringsmodal med riktigt konto
+       // Inloggnings- och registreringsmodal med riktigt konto
         function AuthModal({ user, onClose, t, currentTheme }) {
           const [email, setEmail] = useState('');
           const [password, setPassword] = useState('');
@@ -766,9 +766,9 @@ useEffect(() => {
             setError('');
             try {
               if (isSignUp) {
-                await createUserWithEmailAndPassword(auth, email, password);
+                await auth.createUserWithEmailAndPassword(email, password);
               } else {
-                await signInWithEmailAndPassword(auth, email, password);
+                await auth.signInWithEmailAndPassword(email, password);
               }
               onClose();
             } catch (err) {
@@ -779,8 +779,8 @@ useEffect(() => {
           };
 
           const handleLogout = async () => {
-            await signOut(auth);
-            await signInAnonymously(auth);
+            await auth.signOut();
+            await auth.signInAnonymously();
             onClose();
           };
 
@@ -821,7 +821,6 @@ useEffect(() => {
             </div>
           );
         }
-
 // Starta appen säkert med en krasch-spärr
         try {
             const rootElement = document.getElementById('root');
