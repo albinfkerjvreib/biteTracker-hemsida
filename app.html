@@ -1,1128 +1,1194 @@
-<!DOCTYPE html>
-<html lang="sv">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BiteTracker Pro</title>
-    <link rel="icon" type="image/jpeg" href="179412295382.jpg">
-    <link rel="apple-touch-icon" href="179412295382.jpg">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#134e4a">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Stabil Firebase Compat SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- React 18 -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- Stabil Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
-    <style>
-      .no-scrollbar::-webkit-scrollbar { display: none; }
-      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      .leaflet-container { z-index: 0; outline: none; }
-    </style>
-</head>
-<body class="bg-slate-50 overflow-hidden text-slate-800">
-    <!-- Snygg laddningsskärm -->
-    <div id="loading-screen" class="flex flex-col h-screen w-full items-center justify-center bg-slate-900 fixed inset-0 z-[9999]">
-        <div class="relative flex flex-col items-center">
-            <img src="179412295382.jpg" alt="BiteTracker Logo" class="w-28 h-28 rounded-3xl object-cover shadow-[0_0_40px_rgba(20,184,166,0.3)] animate-bounce border border-teal-800/50">
-            <div class="flex gap-2 mt-8">
-                <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0s"></div>
-                <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0.2s"></div>
-                <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0.4s"></div>
-            </div>
-        </div>
-        <h1 class="text-3xl font-black tracking-tight mt-8 text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-300">
-            BiteTracker
-        </h1>
-        <p class="text-slate-400 text-sm mt-3 font-medium animate-pulse">
-            Gör redo beteslådan...
-        </p>
-    </div>
+<!-- React 18 -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-    <div id="root"></div>
+<style>
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .leaflet-container { z-index: 0; outline: none; }
+</style>
 
-    <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
-    const { createRoot } = ReactDOM;
 
-    // Skottsäkra ikoner/symboler
-    const User = (props) => <span {...props}>👤</span>;
-    const Sparkles = (props) => <span {...props}>✨</span>;
-    const Compass = (props) => <span {...props}>🧭</span>;
-    const Trophy = (props) => <span {...props}>🏆</span>;
-    const Bot = (props) => <span {...props}>🤖</span>;
-    const MapComponent = (props) => <span {...props}>🗺️</span>;
-    const Fish = (props) => <span {...props}>🐟</span>;
-    const Package = (props) => <span {...props}>📦</span>;
-    const Settings = (props) => <span {...props}>⚙️</span>;
-    const Heart = (props) => <span {...props}>❤️</span>;
-    const Anchor = (props) => <span {...props}>⚓</span>;
-    const BookOpen = (props) => <span {...props}>📖</span>;
-    const ShieldAlert = (props) => <span {...props}>🛡️</span>;
-    const Loader2 = (props) => <span {...props}>⏳</span>;
-    const Send = (props) => <span {...props}>📤</span>;
-    const X = (props) => <span {...props}>✕</span>;
-    const UsersIcon = (props) => <span {...props}>👥</span>;
-    const SunIcon = (props) => <span {...props}>☀️</span>;
+<div id="root"></div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBe5L_7VjdC8G23_G7aBgvjnQoJ_cQOjOw",
-      authDomain: "bitetracker-4b619.firebaseapp.com",
-      projectId: "bitetracker-4b619",
-      storageBucket: "bitetracker-4b619.firebasestorage.app",
-      messagingSenderId: "1056235073612",
-      appId: "1:1056235073612:web:cd10ff4baaf05293e604e9",
-      measurementId: "G-YFCHL4RPWB"
-    };
-    
-    const app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const { createRoot } = ReactDOM;
 
-    const translations = {
-      sv: {
-        appTitle: "BiteTracker", loggedIn: "Inloggad",
-        nav_feed: "Flöde", nav_ai: "AI", nav_map: "Karta", nav_log: "Fångster", nav_box: "Låda", nav_compete: "Tävling", nav_profile: "Profil", nav_settings: "Inställningar",
-        ai_title: "Fiske-AI", ai_placeholder: "Ställ en fiskefråga...", ai_thinking: "AI funderar..."
-      },
-      en: {
-        appTitle: "BiteTracker", loggedIn: "Logged in",
-        nav_feed: "Feed", nav_ai: "AI", nav_map: "Map", nav_log: "Catches", nav_box: "Tackle", nav_compete: "Contest", nav_profile: "Profile", nav_settings: "Settings",
-        ai_title: "Fishing AI", ai_placeholder: "Ask a fishing question...", ai_thinking: "AI thinking..."
-      }
-    };
+const User = (props) => <span {...props}>👤</span>;
+const Sparkles = (props) => <span {...props}>✨</span>;
+const Compass = (props) => <span {...props}>🧭</span>;
+const Trophy = (props) => <span {...props}>🏆</span>;
+const Bot = (props) => <span {...props}>🤖</span>;
+const MapComponent = (props) => <span {...props}>🗺️</span>;
+const Fish = (props) => <span {...props}>🐟</span>;
+const Package = (props) => <span {...props}>📦</span>;
+const Settings = (props) => <span {...props}>⚙️</span>;
+const Heart = (props) => <span {...props}>❤️</span>;
+const Anchor = (props) => <span {...props}>⚓</span>;
+const BookOpen = (props) => <span {...props}>📖</span>;
+const ShieldAlert = (props) => <span {...props}>🛡️</span>;
+const Loader2 = (props) => <span {...props}>⏳</span>;
+const Send = (props) => <span {...props}>📤</span>;
+const X = (props) => <span {...props}>✕</span>;
+const UsersIcon = (props) => <span {...props}>👥</span>;
+const SunIcon = (props) => <span {...props}>☀️</span>;
 
-    const themes = {
-      blue: { bg: 'bg-blue-900', text: 'text-blue-900', light: 'bg-blue-50' },
-      teal: { bg: 'bg-teal-700', text: 'text-teal-700', light: 'bg-teal-50' },
-      sunset: { bg: 'bg-amber-800', text: 'text-amber-800', light: 'bg-amber-50' }
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyBe5L_7VjdC8G23_G7aBgvjnQoJ_cQOjOw",
+  authDomain: "bitetracker-4b619.firebaseapp.com",
+  projectId: "bitetracker-4b619",
+  storageBucket: "bitetracker-4b619.firebasestorage.app",
+  messagingSenderId: "1056235073612",
+  appId: "1:1056235073612:web:cd10ff4baaf05293e604e9",
+  measurementId: "G-YFCHL4RPWB"
+};
 
-    const handleGoogleLogin = async () => {
-      try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        await auth.signInWithPopup(provider);
-      } catch (err) {
-        console.error("Google-inloggning misslyckades:", err);
-        alert("Kunde inte logga in med Google: " + err.message);
-      }
-    };
+const app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
+const auth = firebase.auth();
+const db = firebase.firestore();
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-    const handleEmailAuth = async (email, password, isSignUp) => {
-      try {
-        if (isSignUp) {
-          await auth.createUserWithEmailAndPassword(email, password);
-        } else {
-          await auth.signInWithEmailAndPassword(email, password);
-        }
-      } catch (err) {
-        console.error("E-postinloggning misslyckades:", err);
-        alert("Ett fel uppstod: " + err.message);
-      }
-    };
+const translations = {
+  sv: {
+    appTitle: "BiteTracker", loggedIn: "Inloggad",
+    nav_feed: "Flöde", nav_ai: "AI", nav_map: "Karta", nav_log: "Fångster", nav_box: "Låda", nav_compete: "Tävling", nav_profile: "Profil", nav_settings: "Inställningar",
+    ai_title: "Fiske-AI", ai_placeholder: "Ställ en fiskefråga...", ai_thinking: "AI funderar..."
+  }
+};
 
-    // --- START-POPUP FÖR PRO ---
-    function WelcomeProModal({ isOpen, onClose, onLoginClick }) {
-      if (!isOpen) return null;
-      return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-[3000]">
-          <div className="bg-gradient-to-br from-slate-900 to-teal-950 text-white p-6 rounded-3xl w-full max-w-sm space-y-5 text-center relative shadow-2xl border border-teal-500/30">
-            <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 bg-white/10 p-1.5 rounded-full"><X className="h-5 w-5"/></button>
-            <div className="w-20 h-20 bg-amber-400 text-slate-900 rounded-full flex items-center justify-center mx-auto text-3xl font-black shadow-[0_0_30px_rgba(251,191,36,0.4)] animate-bounce">✨</div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-amber-300">Välkommen till BiteTracker!</h2>
-              <p className="text-xs text-slate-300 leading-relaxed">Logga in med ditt konto nu och få <b className="text-amber-300">BiteTracker PRO helt gratis</b> med alla avancerade funktioner upplåsta!</p>
-            </div>
-            <button onClick={() => { onClose(); onLoginClick(); }} className="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 font-black p-4 rounded-2xl shadow-lg text-sm hover:brightness-115 transition-all">
-              Logga in & Få PRO Gratis
-            </button>
-            <button onClick={onClose} className="text-xs text-slate-400 font-medium underline">Fortsätt som gäst</button>
-          </div>
-        </div>
-      );
+const themes = {
+  blue: { bg: 'bg-blue-900', text: 'text-blue-900', light: 'bg-blue-50' },
+  teal: { bg: 'bg-teal-700', text: 'text-teal-700', light: 'bg-teal-50' },
+  sunset: { bg: 'bg-amber-800', text: 'text-amber-800', light: 'bg-amber-50' }
+};
+
+const handleGoogleLogin = async () => {
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch (err) {
+    console.error("Google-inloggning misslyckades:", err);
+    alert("Kunde inte logga in med Google: " + err.message);
+  }
+};
+
+const handleEmailAuth = async (email, password, isSignUp) => {
+  try {
+    if (isSignUp) {
+      await auth.createUserWithEmailAndPassword(email, password);
+    } else {
+      await auth.signInWithEmailAndPassword(email, password);
     }
+  } catch (err) {
+    console.error("E-postinloggning misslyckades:", err);
+    alert("Ett fel uppstod: " + err.message);
+  }
+};
 
-    // --- AUTH MODAL ---
-    function AuthModal({ isOpen, onClose, user, currentTheme }) {
-      const [isSignUp, setIsSignUp] = useState(false);
-      const [email, setEmail] = useState('');
-      const [password, setPassword] = useState('');
-      const [loading, setLoading] = useState(false);
-
-      if (!isOpen) return null;
-
-      const handleLogout = async () => {
-        await auth.signOut();
-        await auth.signInAnonymously();
-        onClose();
-      };
-
-      return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[2000]">
-          <div className="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 relative shadow-2xl">
-            <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 bg-slate-100 p-1.5 rounded-full"><X className="h-5 w-5"/></button>
-            
-            {user && !user.isAnonymous ? (
-              <div className="space-y-4 text-center py-4">
-                <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✨</div>
-                <h3 className="text-xl font-bold text-slate-800">Du är PRO-medlem!</h3>
-                <p className="text-xs text-slate-500">Inloggad som: <b>{user.email}</b></p>
-                <button onClick={handleLogout} className="w-full bg-slate-100 text-red-600 font-bold p-3 rounded-xl text-sm">Logga ut</button>
-              </div>
-            ) : (
-              <form onSubmit={(e) => { e.preventDefault(); handleEmailAuth(email, password, isSignUp); }} className="space-y-3">
-                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-1.5"><Sparkles className="h-5 w-5 text-amber-500"/> {isSignUp ? 'Skapa PRO-konto' : 'Logga in för PRO'}</h3>
-                <p className="text-xs text-slate-500">Få tillgång till privata kartmarkeringar, väderprognoser och vänner.</p>
-                
-                <button 
-                  type="button" 
-                  onClick={handleGoogleLogin} 
-                  className="w-full bg-white border border-slate-300 text-slate-700 font-bold p-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
-                >
-                  🌐 Logga in med Google
-                </button>
-
-                <div className="relative flex py-2 items-center">
-                  <div className="flex-grow border-t border-slate-200"></div>
-                  <span className="flex-shrink mx-4 text-slate-400 text-xs">eller med e-post</span>
-                  <div className="flex-grow border-t border-slate-200"></div>
-                </div>
-
-                <input type="email" placeholder="E-postadress" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
-                <input type="password" placeholder="Lösenord (minst 6 tecken)" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
-                
-                <button type="submit" disabled={loading} className={`w-full ${currentTheme.bg} text-white font-bold p-3.5 rounded-xl shadow text-sm`}>
-                  {isSignUp ? 'Skapa konto & Aktivera PRO' : 'Logga in & Aktivera PRO'}
-                </button>
-
-                <div className="text-center pt-2">
-                  <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-xs text-blue-600 font-semibold">
-                    {isSignUp ? 'Har du redan ett konto? Logga in här' : 'Inget konto? Skapa ett gratis här'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
+function WelcomeProModal({ isOpen, onClose, onLoginClick }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-[3000]">
+      <div className="bg-gradient-to-br from-slate-900 to-teal-950 text-white p-6 rounded-3xl w-full max-w-sm space-y-5 text-center relative shadow-2xl border border-teal-500/30">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 bg-white/10 p-1.5 rounded-full"><X className="h-5 w-5"/></button>
+        <div className="w-20 h-20 bg-amber-400 text-slate-900 rounded-full flex items-center justify-center mx-auto text-3xl font-black shadow-[0_0_30px_rgba(251,191,36,0.4)] animate-bounce">✨</div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-amber-300">Välkommen till BiteTracker!</h2>
+          <p className="text-xs text-slate-300 leading-relaxed">Logga in med ditt konto nu och få <b className="text-amber-300">BiteTracker PRO helt gratis</b> med alla avancerade funktioner upplåsta!</p>
         </div>
-      );
-    }
-
-    // --- AI CHAT (ANROPAR VERCEL API /api/chat) ---
-    function AIChatView({ t, currentTheme, lures, catches }) {
-      const [messages, setMessages] = useState([
-        { sender: 'ai', text: "Hej! Jag är din fiske-AI. Jag analyserar din beteslåda och dina fångster för att ge dig perfekta tips!" }
-      ]);
-      const [input, setInput] = useState('');
-      const [loading, setLoading] = useState(false);
-      const chatEndRef = useRef(null);
-
-      const handleSend = async (e) => {
-        e.preventDefault();
-        if (!input.trim() || loading) return;
-
-        const userMsg = input;
-        setInput('');
-        setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
-        setLoading(true);
-
-        try {
-          const contextInfo = `Beteslåda: ${JSON.stringify(lures)}. Fångster: ${JSON.stringify(catches)}.`;
-          const res = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: [
-                { role: "system", content: "Du är en expert på fiske som hjälper till med betesval och taktik. " + contextInfo },
-                { role: "user", content: userMsg }
-              ]
-            })
-          });
-          const data = await res.json();
-          const reply = data.choices?.[0]?.message?.content || "Kunde inte svara just nu.";
-          setMessages(prev => [...prev, { sender: 'ai', text: reply }]);
-        } catch (err) {
-          setMessages(prev => [...prev, { sender: 'ai', text: "Ett nätverksfel uppstod vid kontakt med servern." }]);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-
-      return (
-        <div className="p-4 flex flex-col h-[calc(100vh-140px)] max-w-xl mx-auto">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border mb-3 flex items-center justify-between">
-            <h2 className={`text-xl font-bold ${currentTheme.text} flex items-center gap-2`}><Bot className="h-6 w-6"/> {t('ai_title')}</h2>
-            <span className="bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1 rounded-full">PRO Aktiv</span>
-          </div>
-          <div className="flex-1 bg-white border rounded-2xl p-4 shadow-sm overflow-y-auto space-y-3 mb-3">
-            {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm ${m.sender === 'user' ? `${currentTheme.bg} text-white rounded-br-none` : 'bg-slate-100 text-slate-800 rounded-bl-none'}`}>
-                  {m.text}
-                </div>
-              </div>
-            ))}
-            {loading && <div className="text-slate-400 text-sm flex items-center gap-2"><Loader2 className="animate-spin h-4 w-4"/> {t('ai_thinking')}</div>}
-            <div ref={chatEndRef} />
-          </div>
-          <form onSubmit={handleSend} className="flex gap-2">
-            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder={t('ai_placeholder')} className="flex-1 p-3.5 bg-white border rounded-xl outline-none text-sm shadow-sm" />
-            <button type="submit" disabled={loading} className={`${currentTheme.bg} text-white px-5 rounded-xl shadow flex items-center justify-center`}><Send className="h-5 w-5"/></button>
-          </form>
-        </div>
-      );
-    }
-
-    // --- FLÖDE ---
-    function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }) {
-      const handleLike = async (post) => {
-        if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
-        const ref = db.collection('artifacts').doc(appId).collection('public_feed').doc(post.id);
-        const likes = post.likes || [];
-        if (likes.includes(user.uid)) await ref.update({ likes: firebase.firestore.FieldValue.arrayRemove(user.uid) });
-        else await ref.update({ likes: firebase.firestore.FieldValue.arrayUnion(user.uid) });
-      };
-
-      return (
-        <div className="p-4 space-y-4 max-w-xl mx-auto">
-          {!isPro && (
-            <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-white p-4 rounded-2xl shadow-md flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-sm flex items-center gap-1.5"><Sparkles className="h-4 w-4"/> Lås upp BiteTracker PRO</h3>
-                <p className="text-xs text-amber-100 mt-0.5">Logga in med ditt konto för att få PRO helt gratis!</p>
-              </div>
-              <button onClick={() => setShowAuthModal(true)} className="bg-white text-amber-900 font-bold px-4 py-2 rounded-xl text-xs shadow">Logga In</button>
-            </div>
-          )}
-
-          {/* Väder & Fiskeprognos Widget */}
-          <div className="bg-gradient-to-br from-teal-800 to-slate-900 text-white p-4 rounded-2xl shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-teal-300 uppercase tracking-widest font-black">Prognos & Väder</span>
-              <h3 className="font-bold text-base flex items-center gap-1.5"><SunIcon className="h-5 w-5 text-amber-400"/> 14°C • Svag vind (2.3 m/s)</h3>
-              <p className="text-xs text-slate-300 mt-0.5">Lufttryck: 1018 hPa (Stigande)</p>
-            </div>
-            <div className="bg-amber-400 text-slate-900 font-black px-3 py-2 rounded-xl text-center text-xs shadow">
-              <span>🔥 Nappindex</span>
-              <span className="block text-sm">8/10</span>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-between">
-            <div>
-              <h2 className={`text-xl font-bold ${currentTheme.text}`}>Fiske-Flöde</h2>
-              <p className="text-xs text-slate-500">Se vad andra fiskare drar upp i realtid</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {globalFeed.length === 0 ? (
-              <div className="text-center p-8 bg-white rounded-2xl border border-dashed">
-                <p className="text-slate-500 text-sm">Inga fångster i flödet ännu.</p>
-              </div>
-            ) : (
-              globalFeed.map(post => {
-                const likesCount = (post.likes || []).length;
-                const hasLiked = user && !user.isAnonymous && (post.likes || []).includes(user.uid);
-                return (
-                  <div key={post.id} className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-                    <div className="p-4 flex items-center justify-between border-b">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs">{post.authorName?.charAt(0) || 'F'}</div>
-                        <div>
-                          <span className="font-bold text-sm block">{post.authorName || 'Fiskare'}</span>
-                          <span className="text-[10px] text-slate-400">{post.location || 'Sverige'}</span>
-                        </div>
-                      </div>
-                      <span className="bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-bold">{post.species}</span>
-                    </div>
-                    {post.image && <img src={post.image} alt={post.species} className="w-full h-64 object-cover" />}
-                    <div className="p-4 space-y-2">
-                      <p className="text-sm font-semibold">⚖️ {post.weight} kg {post.length ? `• 📏 ${post.length} cm` : ''} {post.lure ? `• 🎣 ${post.lure}` : ''}</p>
-                      {post.description && <p className="text-xs text-slate-600">"{post.description}"</p>}
-                      <div className="pt-2 flex items-center gap-4">
-                        <button onClick={() => handleLike(post)} className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl ${hasLiked ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'}`}>
-                          <Heart className={`h-4 w-4 ${hasLiked ? 'fill-red-500 text-red-500' : ''}`}/> {likesCount}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    // --- TÄVLINGAR & PRIVATA TÄVLINGAR ---
-    function CompetitionView({ globalFeed, user, t, currentTheme, isPro }) {
-      const [competitions, setCompetitions] = useState([]);
-      const [showCreateModal, setShowCreateModal] = useState(false);
-      const [compTitle, setCompTitle] = useState('');
-      const [compTarget, setCompTarget] = useState('Gädda');
-
-      useEffect(() => {
-        const ref = db.collection('artifacts').doc(appId).collection('competitions');
-        return ref.onSnapshot(snap => {
-          const list = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-          setCompetitions(list);
-        });
-      }, []);
-
-      const handleCreateComp = async (e) => {
-        e.preventDefault();
-        if (!compTitle) return;
-        await db.collection('artifacts').doc(appId).collection('competitions').add({
-          title: compTitle,
-          target: compTarget,
-          creator: user?.email || 'Fiskare',
-          code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        setShowCreateModal(false);
-        setCompTitle('');
-        alert("Privat tävling skapad! Dela koden med dina kompisar.");
-      };
-
-      const sorted = [...globalFeed].sort((a, b) => b.weight - a.weight);
-
-      return (
-        <div className="p-4 space-y-4 max-w-xl mx-auto">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-between">
-            <div>
-              <h2 className={`text-xl font-bold ${currentTheme.text} flex items-center gap-2`}><Trophy className="h-6 w-6 text-amber-500"/> Tävlingar</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Global topplista eller skapa egen med kompisarna</p>
-            </div>
-            <button onClick={() => { if(!isPro){alert("Logga in för att skapa privata tävlingar!"); return;} setShowCreateModal(true); }} className={`${currentTheme.bg} text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow`}>
-              + Skapa Privat
-            </button>
-          </div>
-
-          {competitions.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-2">
-              <h3 className="font-bold text-amber-900 text-sm">Privata Vän-Tävlingar</h3>
-              {competitions.map(c => (
-                <div key={c.id} className="bg-white p-3 rounded-xl flex items-center justify-between shadow-sm">
-                  <div>
-                    <p className="font-bold text-sm text-slate-800">🏆 {c.title}</p>
-                    <p className="text-[10px] text-slate-500">Mål: {c.target} • Skapad av {c.creator}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase">Inbjudningskod</span>
-                    <span className="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-1 rounded-lg">{c.code}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="bg-white rounded-2xl shadow-sm border p-4 space-y-3">
-            <h3 className="font-bold text-sm text-slate-700">Månadens Globala Topplista</h3>
-            {sorted.length === 0 ? <p className="text-xs text-slate-400">Inga tävlingsbidrag ännu.</p> : sorted.slice(0, 5).map((item, index) => (
-              <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <span className={`font-black text-sm ${index === 0 ? 'text-amber-500 text-lg' : 'text-slate-500'}`}>#{index + 1}</span>
-                  <div>
-                    <p className="font-bold text-sm">{item.species}</p>
-                    <p className="text-[10px] text-slate-400">{item.authorName || 'Fiskare'} • {item.location || 'Sverige'}</p>
-                  </div>
-                </div>
-                <span className="font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg text-sm">{item.weight} kg</span>
-              </div>
-            ))}
-          </div>
-
-          {showCreateModal && (
-            <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
-              <form onSubmit={handleCreateComp} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-                <h3 className="font-bold text-lg text-slate-800">Skapa Privat Tävling</h3>
-                <input type="text" placeholder="Tävlingens namn (t.ex. Gängets Gäddfiske)" value={compTitle} onChange={e => setCompTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-                <select value={compTarget} onChange={e => setCompTarget(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-                  <option value="Gädda">Gädda</option>
-                  <option value="Abborre">Abborre</option>
-                  <option value="Gös">Gös</option>
-                  <option value="Alla arter">Alla arter</option>
-                </select>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
-                  <button type="submit" className="flex-1 bg-amber-600 text-white font-bold p-3 rounded-xl text-sm">Skapa</button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // --- PROFIL & VÄNNER ---
-    function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal }) {
-      const [searchQuery, setSearchQuery] = useState('');
-      const [searchResults, setSearchResults] = useState([]);
-      const [friends, setFriends] = useState([]);
-
-      useEffect(() => {
-        if (!user || user.isAnonymous) return;
-        const ref = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('friends');
-        return ref.onSnapshot(snap => {
-          const list = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-          setFriends(list);
-        });
-      }, [user]);
-
-      const handleSearchFriends = async (e) => {
-        e.preventDefault();
-        if (!searchQuery) return;
-        const snap = await db.collection('artifacts').doc(appId).collection('users').get();
-        const list = [];
-        snap.forEach(doc => {
-          const data = doc.data();
-          if (doc.id !== user.uid) {
-            list.push({ id: doc.id, name: data.displayName || 'Fiskare' });
-          }
-        });
-        setSearchResults(list.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())));
-      };
-
-      const handleAddFriend = async (friend) => {
-        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('friends').doc(friend.id).set({
-          name: friend.name,
-          addedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        alert(`Lagt till ${friend.name} som vän!`);
-      };
-
-      return (
-        <div className="p-4 space-y-4 max-w-xl mx-auto">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border text-center space-y-2">
-            <div className="w-20 h-20 bg-teal-100 text-teal-800 rounded-full flex items-center justify-center mx-auto text-2xl font-black">
-              {profile.displayName ? profile.displayName.charAt(0) : '👤'}
-            </div>
-            <h2 className={`text-xl font-bold ${currentTheme.text}`}>{profile.displayName || 'Inloggad Fiskare'}</h2>
-            <p className="text-xs text-slate-500">{user?.email || (user?.isAnonymous ? 'Gäst-konto' : 'PRO-medlem')}</p>
-            {isPro ? (
-              <span className="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full"><Sparkles className="inline h-3 w-3"/> PRO Medlem Aktiv</span>
-            ) : (
-              <button onClick={() => setShowAuthModal(true)} className="bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow">Logga in för PRO</button>
-            )}
-          </div>
-
-          {/* Vänner-sektion */}
-          <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-            <h3 className="font-bold text-sm text-slate-800 flex items-center gap-1.5"><UsersIcon className="h-5 w-5 text-teal-600"/> Sök & Lägg till Vänner</h3>
-            <form onSubmit={handleSearchFriends} className="flex gap-2">
-              <input type="text" placeholder="Sök efter fiskarkompis..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="flex-1 p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
-              <button type="submit" className={`${currentTheme.bg} text-white px-4 rounded-xl font-bold text-xs`}>Sök</button>
-            </form>
-
-            {searchResults.length > 0 && (
-              <div className="space-y-2 pt-2">
-                <p className="text-xs font-bold text-slate-400">Sökresultat:</p>
-                {searchResults.map(res => (
-                  <div key={res.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl">
-                    <span className="font-semibold text-sm">🎣 {res.name}</span>
-                    <button onClick={() => handleAddFriend(res)} className="bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">Lägg till</button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="pt-2">
-              <p className="text-xs font-bold text-slate-400 mb-2">Dina Vänner ({friends.length}):</p>
-              {friends.length === 0 ? <p className="text-xs text-slate-500">Inga vänner tillagda ännu.</p> : friends.map(f => (
-                <div key={f.id} className="p-2.5 bg-emerald-50 text-emerald-900 rounded-xl font-semibold text-sm mb-1 flex items-center justify-between">
-                  <span>👤 {f.name}</span>
-                  <span className="text-[10px] bg-white px-2 py-1 rounded">Aktiv</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // --- KARTA ---
-    function MapView({ user, currentTheme, isPro }) {
-      const [leafletLoaded, setLeafletLoaded] = useState(false);
-      const mapRef = useRef(null);
-      const mapInstance = useRef(null);
-      const markersLayer = useRef(null);
-      const tileLayerRef = useRef(null);
-
-      const [mapStyle, setMapStyle] = useState('topo');
-      const [approvedLakes, setApprovedLakes] = useState([]);
-      const [privateMarkers, setPrivateMarkers] = useState([]);
-      const [searchQuery, setSearchQuery] = useState('');
-
-      const [showSuggestModal, setShowSuggestModal] = useState(false);
-      const [showPrivateModal, setShowPrivateModal] = useState(false);
-      const [clickedCoords, setClickedCoords] = useState(null);
-
-      const [suggestName, setSuggestName] = useState('');
-      const [suggestRules, setSuggestRules] = useState('');
-      const [suggestFish, setSuggestFish] = useState('');
-
-      const [privateTitle, setPrivateTitle] = useState('');
-      const [privateType, setPrivateType] = useState('Brygga');
-
-      useEffect(() => {
-        const ref = db.collection('artifacts').doc(appId).collection('approved_lakes');
-        return ref.onSnapshot(snap => {
-          const list = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-          setApprovedLakes(list);
-        });
-      }, []);
-
-      useEffect(() => {
-        if (!user || user.isAnonymous) return;
-        const ref = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins');
-        return ref.onSnapshot(snap => {
-          const list = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-          setPrivateMarkers(list);
-        });
-      }, [user]);
-
-      useEffect(() => {
-        if (window.L) { setLeafletLoaded(true); return; }
-        const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(link);
-        const script = document.createElement('script'); script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; script.onload = () => setLeafletLoaded(true); document.head.appendChild(script);
-      }, []);
-
-      useEffect(() => {
-        if (!leafletLoaded || !mapRef.current || mapInstance.current) return;
-        const map = window.L.map(mapRef.current, { zoomControl: false, tap: true }).setView([60.128, 18.643], 5);
-        
-        const url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
-        tileLayerRef.current = window.L.tileLayer(url).addTo(map);
-        window.L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-        map.on('click', (e) => {
-          const { lat, lng } = e.latlng;
-          setClickedCoords({ lat, lng });
-        });
-        mapInstance.current = map;
-        markersLayer.current = window.L.layerGroup().addTo(map);
-      }, [leafletLoaded]);
-
-      const changeMapLayer = (style) => {
-        if (!isPro) { alert("Att byta olika kartor (Satellit/Djupkarta) kräver PRO!"); return; }
-        setMapStyle(style);
-        if (!mapInstance.current || !window.L) return;
-        if (tileLayerRef.current) mapInstance.current.removeLayer(tileLayerRef.current);
-
-        let url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
-        if (style === 'satellite') url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-        if (style === 'depth') url = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
-
-        tileLayerRef.current = window.L.tileLayer(url).addTo(mapInstance.current);
-      };
-
-      useEffect(() => {
-        if (!mapInstance.current || !markersLayer.current || !window.L) return;
-        markersLayer.current.clearLayers();
-
-        const lakeIcon = window.L.divIcon({
-          className: 'custom-div-icon',
-          html: "<div style='background-color:#0d9488; width:18px; height:18px; border-radius:50%; border:2px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.5); text-align:center; font-size:10px;'>🌊</div>",
-          iconSize: [22, 22], iconAnchor: [11, 11]
-        });
-
-        const privateIcon = window.L.divIcon({
-          className: 'custom-div-icon',
-          html: "<div style='background-color:#f59e0b; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.5); text-align:center; font-size:9px;'>⚓</div>",
-          iconSize: [20, 20], iconAnchor: [10, 10]
-        });
-
-        approvedLakes.forEach(l => {
-          if (l.lat && l.lng) {
-            const m = window.L.marker([l.lat, l.lng], { icon: lakeIcon }).addTo(markersLayer.current);
-            m.bindPopup(`<b>${l.name}</b><br>Fisk: ${l.fish || 'Diverse'}<br>Regler: ${l.rules}`);
-          }
-        });
-
-        if (isPro) {
-          privateMarkers.forEach(p => {
-            if (p.lat && p.lng) {
-              const m = window.L.marker([p.lat, p.lng], { icon: privateIcon }).addTo(markersLayer.current);
-              m.bindPopup(`<b>🔒 [PRO Privat] ${p.title}</b><br>Typ: ${p.type}`);
-            }
-          });
-        }
-      }, [approvedLakes, privateMarkers, isPro, leafletLoaded]);
-
-      const handleSearchLake = (e) => {
-        e.preventDefault();
-        const found = approvedLakes.find(l => l.name.toLowerCase().includes(searchQuery.toLowerCase()));
-        if (found && mapInstance.current && found.lat && found.lng) {
-          mapInstance.current.setView([found.lat, found.lng], 12);
-        } else {
-          alert("Hittade ingen godkänd sjö med det namnet.");
-        }
-      };
-
-      const handleSendSuggestion = async (e) => {
-        e.preventDefault();
-        if (!suggestName || !clickedCoords) return;
-        await db.collection('artifacts').doc(appId).collection('lake_suggestions').add({
-          name: suggestName,
-          rules: suggestRules || 'Inga angivna regler',
-          fish: suggestFish || 'Diverse',
-          lat: clickedCoords.lat,
-          lng: clickedCoords.lng,
-          status: 'pending',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        setShowSuggestModal(false);
-        setSuggestName(''); setSuggestRules(''); setSuggestFish('');
-        alert("Förslag skickat till admin för godkännande!");
-      };
-
-      const handleSavePrivate = async (e) => {
-        e.preventDefault();
-        if (!isPro) { alert("Du behöver vara inloggad (PRO) för att spara privata markeringar!"); return; }
-        if (!privateTitle || !clickedCoords || !user) return;
-        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').add({
-          title: privateTitle,
-          type: privateType,
-          lat: clickedCoords.lat,
-          lng: clickedCoords.lng,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        setShowPrivateModal(false);
-        setPrivateTitle('');
-        alert("Privat PRO-plats sparad!");
-      };
-
-      return (
-        <div className="relative w-full h-[calc(100vh-140px)]">
-          <div className="absolute top-4 left-4 right-4 z-[400] max-w-xl mx-auto space-y-2">
-            <form onSubmit={handleSearchLake} className="flex gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-lg border">
-              <input type="text" placeholder="Sök sjö eller regler..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="flex-1 p-2 bg-slate-50 border rounded-xl text-sm outline-none" />
-              <button type="submit" className={`${currentTheme.bg} text-white px-4 rounded-xl font-bold text-xs`}>Sök Sjö</button>
-            </form>
-
-            {/* PRO Kartbytare */}
-            {isPro && (
-              <div className="flex gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-xl shadow border text-xs">
-                <button onClick={() => changeMapLayer('topo')} className={`flex-1 py-1.5 rounded-lg font-bold ${mapStyle === 'topo' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>Standard</button>
-                <button onClick={() => changeMapLayer('satellite')} className={`flex-1 py-1.5 rounded-lg font-bold ${mapStyle === 'satellite' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>🛰️ Satellit</button>
-                <button onClick={() => changeMapLayer('depth')} className={`flex-1 py-1.5 rounded-lg font-bold ${mapStyle === 'depth' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>🗺️ Djupkarta</button>
-              </div>
-            )}
-          </div>
-
-          <div ref={mapRef} className="w-full h-full" />
-
-          {clickedCoords && !showSuggestModal && !showPrivateModal && (
-            <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border z-[1000] max-w-xl mx-auto space-y-3">
-              <div className="flex justify-between items-center">
-                <h3 className="font-bold text-slate-800 text-sm">📍 Position vald ({clickedCoords.lat.toFixed(3)}, {clickedCoords.lng.toFixed(3)})</h3>
-                <button onClick={() => setClickedCoords(null)} className="text-slate-400"><X className="h-5 w-5"/></button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => setShowSuggestModal(true)} className="bg-teal-700 text-white font-bold p-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow">
-                  <BookOpen className="h-4 w-4"/> Föreslå sjö till karta
-                </button>
-                <button onClick={() => { if (!isPro) { alert("Logga in för att använda privata PRO-markeringar!"); return; } setShowPrivateModal(true); }} className="bg-amber-600 text-white font-bold p-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow">
-                  <Anchor className="h-4 w-4"/> {isPro ? 'Lägg till privat brygga' : '🔒 Privat brygga (PRO)'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {showSuggestModal && (
-            <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
-              <form onSubmit={handleSendSuggestion} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-                <h3 className="font-bold text-lg text-slate-800">Föreslå Sjökarta & Regler</h3>
-                <input type="text" placeholder="Sjöns namn" value={suggestName} onChange={e => setSuggestName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-                <input type="text" placeholder="Fiskarter (t.ex. Gädda, Abborre)" value={suggestFish} onChange={e => setSuggestFish(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-                <textarea placeholder="Regler & fiskekort info..." value={suggestRules} onChange={e => setSuggestRules(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-24 resize-none" />
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setShowSuggestModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
-                  <button type="submit" className="flex-1 bg-teal-700 text-white font-bold p-3 rounded-xl text-sm">Skicka in</button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {showPrivateModal && (
-            <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
-              <form onSubmit={handleSavePrivate} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-                <h3 className="font-bold text-lg text-slate-800">Lägg till privat PRO-markering</h3>
-                <input type="text" placeholder="Titel (t.ex. Min båtbrygga)" value={privateTitle} onChange={e => setPrivateTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-                <select value={privateType} onChange={e => setPrivateType(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-                  <option value="Brygga">Båtbrygga</option>
-                  <option value="Hemlig spot">Hemlig fiskeplats</option>
-                  <option value="Sjöramp">Sjöramp / Sjösättning</option>
-                </select>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setShowPrivateModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
-                  <button type="submit" className="flex-1 bg-amber-600 text-white font-bold p-3 rounded-xl text-sm">Spara Privat</button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // --- LOGGA FÅNGST ---
-    function CatchLogView({ user, t, currentTheme, profile }) {
-      const [species, setSpecies] = useState('');
-      const [weight, setWeight] = useState('');
-      const [length, setLength] = useState('');
-      const [lure, setLure] = useState('');
-      const [description, setDescription] = useState('');
-      const [image, setImage] = useState(null);
-      const [location, setLocation] = useState('');
-      const [sharePublic, setSharePublic] = useState(true);
-
-      const handleSave = async (e) => {
-        e.preventDefault();
-        if (!species || !weight || !location) return;
-        const data = {
-          species,
-          weight: parseFloat(weight),
-          length: length ? parseFloat(length) : null,
-          lure,
-          description,
-          image,
-          location,
-          authorName: profile.displayName || 'Fiskare',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').add(data);
-        if (sharePublic) {
-          await db.collection('artifacts').doc(appId).collection('public_feed').add(data);
-        }
-
-        setSpecies(''); setWeight(''); setLength(''); setLure(''); setDescription(''); setImage(null); setLocation('');
-        alert(sharePublic ? "Fångsten sparad och publicerad i flödet!" : "Fångst sparad privat!");
-      };
-
-      return (
-        <div className="p-4 max-w-xl mx-auto space-y-4">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border"><h2 className={`text-xl font-bold ${currentTheme.text}`}>Logga Fångst</h2></div>
-          <form onSubmit={handleSave} className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-            <input type="text" placeholder="Fiskart (t.ex. Gädda)" value={species} onChange={e => setSpecies(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" step="0.1" placeholder="Vikt (kg)" value={weight} onChange={e => setWeight(e.target.value)} required className="p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
-              <input type="number" placeholder="Längd (cm)" value={length} onChange={e => setLength(e.target.value)} className="p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
-            </div>
-            <input type="text" placeholder="Bete / Drag" value={lure} onChange={e => setLure(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
-            <input type="text" placeholder="Plats / Sjö" value={location} onChange={e => setLocation(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
-            <textarea placeholder="Beskrivning..." value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none resize-none h-20" />
-            
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500">Bifoga foto på fångst:</label>
-              <input type="file" accept="image/*" onChange={e => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onloadend = () => setImage(r.result); r.readAsDataURL(f); }}} className="w-full text-xs" />
-            </div>
-
-            <label className="flex items-center gap-2 pt-2 cursor-pointer">
-              <input type="checkbox" checked={sharePublic} onChange={e => setSharePublic(e.target.checked)} className="w-4 h-4 rounded text-teal-700" />
-              <span className="text-xs font-bold text-slate-700">Dela fångsten med andra i det globala flödet</span>
-            </label>
-
-            <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3.5 rounded-xl shadow`}>Spara Fångst</button>
-          </form>
-        </div>
-      );
-    }
-
-    // --- BETESLÅDAN ---
-    function TackleBoxView({ user, lures, t, currentTheme }) {
-      const [name, setName] = useState(''); const [type, setType] = useState(''); const [color, setColor] = useState('');
-      const handleAdd = async (e) => {
-        e.preventDefault(); if (!name) return;
-        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures').add({ name, type, color, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        setName(''); setType(''); setColor('');
-      };
-      return (
-        <div className="p-4 max-w-xl mx-auto space-y-4">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border"><h2 className={`text-xl font-bold ${currentTheme.text}`}>Beteslådan</h2></div>
-          <form onSubmit={handleAdd} className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-            <input type="text" placeholder="Betets namn" value={name} onChange={e => setName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <input type="text" placeholder="Typ (t.ex. Jerkbait)" value={type} onChange={e => setType(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <input type="text" placeholder="Färg" value={color} onChange={e => setColor(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3 rounded-xl shadow`}>Lägg till i lådan</button>
-          </form>
-        </div>
-      );
-    }
-
-    // --- INSTÄLLNINGAR & ADMIN ---
-    function SettingsView({ user, profile, t, appTheme, setAppTheme, lang, setLang, setShowAuthModal, currentTheme, isPro }) {
-      const [name, setName] = useState(profile.displayName || '');
-      const [showPinModal, setShowPinModal] = useState(false);
-      const [pinInput, setPinInput] = useState('');
-      const [isAdmin, setIsAdmin] = useState(false);
-      const [pendingLakes, setPendingLakes] = useState([]);
-
-      useEffect(() => {
-        if (!isAdmin) return;
-        const ref = db.collection('artifacts').doc(appId).collection('lake_suggestions');
-        return ref.onSnapshot(snap => {
-          const list = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-          setPendingLakes(list.filter(l => l.status === 'pending'));
-        });
-      }, [isAdmin]);
-
-      const handleSaveName = async (e) => {
-        e.preventDefault();
-        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ displayName: name }, { merge: true });
-        alert("Profil sparad!");
-      };
-
-      const handleCheckPin = (e) => {
-        e.preventDefault();
-        if (pinInput === '6031') {
-          setIsAdmin(true);
-          setShowPinModal(false);
-          setPinInput('');
-          alert("Admin-läge aktiverat!");
-        } else {
-          alert("Felaktig pinkod!");
-        }
-      };
-
-      const handleApproveLake = async (lake) => {
-        await db.collection('artifacts').doc(appId).collection('approved_lakes').add({
-          name: lake.name,
-          rules: lake.rules,
-          fish: lake.fish,
-          lat: lake.lat,
-          lng: lake.lng,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(lake.id).delete();
-        alert("Sjön godkänd och publicerad på kartan!");
-      };
-
-      const handleDeleteSuggestion = async (id) => {
-        await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(id).delete();
-      };
-
-      return (
-        <div className="p-4 max-w-xl mx-auto space-y-4">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-between">
-            <h2 className={`text-xl font-bold ${currentTheme.text}`}>Inställningar</h2>
-            {isPro ? (
-              <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1"><Sparkles className="h-3.5 w-3.5"/> PRO Aktiv</span>
-            ) : (
-              <button onClick={() => setShowAuthModal(true)} className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow">Logga in för PRO</button>
-            )}
-          </div>
-          
-          <form onSubmit={handleSaveName} className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-            <label className="text-xs font-bold text-slate-700">Ditt Fiske-Namn</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3 rounded-xl`}>Spara Namn</button>
-          </form>
-
-          {/* Språkval */}
-          <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-            <label className="text-xs font-bold text-slate-700">Välj Språk / Language</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setLang('sv')} className={`p-3 rounded-xl font-bold text-xs ${lang === 'sv' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>Svenska</button>
-              <button onClick={() => setLang('en')} className={`p-3 rounded-xl font-bold text-xs ${lang === 'en' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>English</button>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-            <label className="text-xs font-bold text-slate-700">Välj App-Tema</label>
-            <div className="grid grid-cols-3 gap-2">
-              <button onClick={() => setAppTheme('blue')} className={`p-3 rounded-xl font-bold text-white bg-blue-900 ${appTheme === 'blue' ? 'ring-2 ring-offset-2 ring-blue-900' : ''}`}>Blå</button>
-              <button onClick={() => setAppTheme('teal')} className={`p-3 rounded-xl font-bold text-white bg-teal-700 ${appTheme === 'teal' ? 'ring-2 ring-offset-2 ring-teal-700' : ''}`}>Grön</button>
-              <button onClick={() => setAppTheme('sunset')} className={`p-3 rounded-xl font-bold text-white bg-amber-800 ${appTheme === 'sunset' ? 'ring-2 ring-offset-2 ring-amber-800' : ''}`}>Solnedgång</button>
-            </div>
-          </div>
-
-          {!isAdmin ? (
-            <button onClick={() => setShowPinModal(true)} className="w-full bg-slate-800 text-white font-bold p-4 rounded-2xl text-sm">Logga in i Admin-läge</button>
-          ) : (
-            <div className="bg-slate-900 text-white p-4 rounded-2xl space-y-3">
-              <h3 className="font-bold text-amber-400 flex items-center gap-2"><ShieldAlert className="h-5 w-5"/> Admin-panel: Väntande Sjöförslag</h3>
-              {pendingLakes.length === 0 ? <p className="text-xs text-slate-400">Inga väntande sjöförslag just nu.</p> : pendingLakes.map(l => (
-                <div key={l.id} className="bg-slate-800 p-3 rounded-xl space-y-2 border border-slate-700">
-                  <p className="font-bold text-sm">🌊 {l.name}</p>
-                  <p className="text-xs text-slate-300"><b>Regler:</b> {l.rules}</p>
-                  <p className="text-xs text-slate-300"><b>Fisk:</b> {l.fish}</p>
-                  <div className="flex gap-2 pt-1">
-                    <button onClick={() => handleApproveLake(l)} className="flex-1 bg-emerald-600 text-white p-2 rounded-lg text-xs font-bold">Godkänn</button>
-                    <button onClick={() => handleDeleteSuggestion(l.id)} className="flex-1 bg-red-600 text-white p-2 rounded-lg text-xs font-bold">Neka</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {showPinModal && (
-            <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
-              <form onSubmit={handleCheckPin} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-                <h3 className="font-bold text-lg text-slate-800">Slå in Admin-kod</h3>
-                <input type="password" placeholder="Pinkod..." value={pinInput} onChange={e => setPinInput(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm tracking-widest text-center" />
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setShowPinModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
-                  <button type="submit" className="flex-1 bg-slate-900 text-white font-bold p-3 rounded-xl text-sm">Lås upp</button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    function NavItem({ Icon, label, isActive, onClick, currentTheme }) {
-      return (
-        <button onClick={onClick} className={`flex flex-col items-center justify-center py-1.5 px-3 min-w-[50px] rounded-xl transition ${ isActive ? `${currentTheme.text} ${currentTheme.light} font-bold scale-105` : 'text-slate-400' }`}>
-          <Icon className="h-5 w-5 mb-0.5"/> <span className="text-[9px]">{label}</span>
+        <button onClick={() => { onClose(); onLoginClick(); }} className="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 font-black p-4 rounded-2xl shadow-lg text-sm hover:brightness-115 transition-all">
+          Logga in & Få PRO Gratis
         </button>
-      );
-    }
+        <button onClick={onClose} className="text-xs text-slate-400 font-medium underline">Fortsätt som gäst</button>
+      </div>
+    </div>
+  );
+}
 
-    // --- HUVUDAPPEN ---
-    function FiskeAppen() {
-      const [user, setUser] = useState(null);
-      const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-      const [activeTab, setActiveTab] = useState('feed');
-      const [catches, setCatches] = useState([]);
-      const [globalFeed, setGlobalFeed] = useState([]);
-      const [lures, setLures] = useState([]);
-      const [profile, setProfile] = useState({});
-      const [showAuthModal, setShowAuthModal] = useState(false);
-      const [showWelcomeModal, setShowWelcomeModal] = useState(true);
-      const [lang, setLang] = useState('sv');
-      const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
-      const isPro = user && !user.isAnonymous;
+function AuthModal({ isOpen, onClose, user, currentTheme }) {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-      const t = (key) => translations[lang]?.[key] || key;
-      const currentTheme = themes[appTheme] || themes.blue;
+  if (!isOpen) return null;
 
-      useEffect(() => {
-        const initAuth = async () => { 
-          try { await auth.signInAnonymously(); } catch (error) {} 
-          setIsLoadingAuth(false); 
-        };
-        initAuth();
-        const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
-        return () => unsubscribe();
-      }, []);
+  const handleLogout = async () => {
+    await auth.signOut();
+    await auth.signInAnonymously();
+    onClose();
+  };
 
-      useEffect(() => {
-        if (!user) return;
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[2000]">
+      <div className="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 relative shadow-2xl">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 bg-slate-100 p-1.5 rounded-full"><X className="h-5 w-5"/></button>
         
-        const catchesRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches');
-        const unsubC = catchesRef.onSnapshot((snap) => { 
-          const f = []; 
-          snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-          f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-          setCatches(f); 
-        });
-        
-        const globalRef = db.collection('artifacts').doc(appId).collection('public_feed');
-        const unsubG = globalRef.onSnapshot((snap) => { 
-          const f = []; 
-          snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-          f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-          setGlobalFeed(f); 
-        });
-        
-        const luresRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures');
-        const unsubL = luresRef.onSnapshot((snap) => { 
-          const f = []; 
-          snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-          f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-          setLures(f); 
-        }, (error) => {});
-
-        const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
-        const unsubP = profileRef.onSnapshot((docSnap) => { 
-          if (docSnap.exists) setProfile(docSnap.data()); 
-        });
-
-        return () => { unsubC(); unsubG(); unsubL(); unsubP(); };
-      }, [user]);
-
-      if (isLoadingAuth) {
-        return (
-          <div className="flex flex-col h-screen items-center justify-center bg-slate-900 text-white">
-            <img src="179412295382.jpg" alt="Logo" className="h-28 w-28 rounded-3xl animate-bounce mb-6 object-cover" />
-            <h1 className="text-3xl font-black">BiteTracker</h1>
+        {user && !user.isAnonymous ? (
+          <div className="space-y-4 text-center py-4">
+            <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✨</div>
+            <h3 className="text-xl font-bold text-slate-800">Du är PRO-medlem!</h3>
+            <p className="text-xs text-slate-500">Inloggad som: <b>{user.email}</b></p>
+            <button onClick={handleLogout} className="w-full bg-slate-100 text-red-600 font-bold p-3 rounded-xl text-sm">Logga ut</button>
           </div>
-        );
-      }
-
-      return (
-        <div className="flex flex-col h-screen bg-slate-50 font-sans">
-          <header className={`${currentTheme.bg} text-white p-4 shadow-md flex items-center justify-between z-10 shrink-0`}>
-            <div className="flex items-center gap-3">
-              <img src="179412295382.jpg" alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold">{t('appTitle')}</h1>
-                {isPro && <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow"><Sparkles className="h-3 w-3"/> PRO</span>}
-              </div>
-            </div>
-            <button onClick={() => setShowAuthModal(true)} className="flex items-center gap-1.5 text-white/90 py-1 px-3 bg-black/20 rounded-xl text-xs font-bold">
-              <User className="h-4 w-4"/> {user?.isAnonymous ? 'Logga In för PRO' : (profile.displayName || user?.email || t('loggedIn'))}
+        ) : (
+          <form onSubmit={(e) => { e.preventDefault(); handleEmailAuth(email, password, isSignUp); }} className="space-y-3">
+            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-1.5"><Sparkles className="h-5 w-5 text-amber-500"/> {isSignUp ? 'Skapa PRO-konto' : 'Logga in för PRO'}</h3>
+            <p className="text-xs text-slate-500">Få tillgång till molnlagring, vänner och privata markeringar.</p>
+            
+            <button 
+              type="button" 
+              onClick={handleGoogleLogin} 
+              className="w-full bg-white border border-slate-300 text-slate-700 font-bold p-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
+            >
+              🌐 Logga in med Google
             </button>
-          </header>
 
-          <main className="flex-1 overflow-y-auto pb-20">
-            {activeTab === 'feed' && <FeedView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} setShowAuthModal={setShowAuthModal} t={t} user={user}/>}
-            {activeTab === 'compete' && <CompetitionView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} t={t} user={user}/>}
-            {activeTab === 'ai' && <AIChatView catches={catches} currentTheme={currentTheme} lures={lures} t={t}/>}
-            {activeTab === 'map' && <MapView currentTheme={currentTheme} isPro={isPro} user={user}/>}
-            {activeTab === 'log' && <CatchLogView currentTheme={currentTheme} profile={profile} t={t} user={user}/>}
-            {activeTab === 'box' && <TackleBoxView currentTheme={currentTheme} lures={lures} t={t} user={user}/>}
-            {activeTab === 'profile' && <ProfileView currentTheme={currentTheme} isPro={isPro} profile={profile} setShowAuthModal={setShowAuthModal} user={user}/>}
-            {activeTab === 'settings' && <SettingsView appTheme={appTheme} currentTheme={currentTheme} isPro={isPro} lang={lang} profile={profile} setAppTheme={setAppTheme} setLang={setLang} setShowAuthModal={setShowAuthModal} t={t} user={user}/>}
-          </main>
-
-          <nav className="fixed bottom-0 w-full bg-white border-t border-slate-200 z-20 shadow">
-            <div className="flex justify-around items-center p-1.5 overflow-x-auto no-scrollbar">
-              <NavItem Icon={Compass} isActive={activeTab === 'feed'} label={t('nav_feed')} onClick={() => setActiveTab('feed')} currentTheme={currentTheme} />
-              <NavItem Icon={Trophy} isActive={activeTab === 'compete'} label={t('nav_compete')} onClick={() => setActiveTab('compete')} currentTheme={currentTheme} />
-              <NavItem Icon={Bot} isActive={activeTab === 'ai'} label={t('nav_ai')} onClick={() => setActiveTab('ai')} currentTheme={currentTheme} />
-              <NavItem Icon={MapComponent} isActive={activeTab === 'map'} label={t('nav_map')} onClick={() => setActiveTab('map')} currentTheme={currentTheme} />
-              <NavItem Icon={Fish} isActive={activeTab === 'log'} label={t('nav_log')} onClick={() => setActiveTab('log')} currentTheme={currentTheme} />
-              <NavItem Icon={Package} isActive={activeTab === 'box'} label={t('nav_box')} onClick={() => setActiveTab('box')} currentTheme={currentTheme} />
-              <NavItem Icon={User} isActive={activeTab === 'profile'} label={t('nav_profile')} onClick={() => setActiveTab('profile')} currentTheme={currentTheme} />
-              <NavItem Icon={Settings} isActive={activeTab === 'settings'} label={t('nav_settings')} onClick={() => setActiveTab('settings')} currentTheme={currentTheme} />
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-slate-200"></div>
+              <span className="flex-shrink mx-4 text-slate-400 text-xs">eller med e-post</span>
+              <div className="flex-grow border-t border-slate-200"></div>
             </div>
-          </nav>
 
-          <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} user={user} currentTheme={currentTheme} />
-          <WelcomeProModal isOpen={showWelcomeModal && user?.isAnonymous} onClose={() => setShowWelcomeModal(false)} onLoginClick={() => setShowAuthModal(true)} />
-        </div>
-      );
-    }
+            <input type="email" placeholder="E-postadress" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
+            <input type="password" placeholder="Lösenord (minst 6 tecken)" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
+            
+            <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3.5 rounded-xl shadow text-sm`}>
+              {isSignUp ? 'Skapa konto & Aktivera PRO' : 'Logga in & Aktivera PRO'}
+            </button>
+
+            <div className="text-center pt-2">
+              <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-xs text-blue-600 font-semibold">
+                {isSignUp ? 'Har du redan ett konto? Logga in här' : 'Inget konto? Skapa ett gratis här'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- AI CHAT ---
+function AIChatView({ t, currentTheme, lures, catches }) {
+  const [messages, setMessages] = useState([
+    { sender: 'ai', text: "Hej! Jag är din fiske-AI. Jag analyserar din beteslåda och dina fångster för att ge dig perfekta tips!" }
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef(null);
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!input.trim() || loading) return;
+
+    const userMsg = input;
+    setInput('');
+    setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
+    setLoading(true);
 
     try {
-        const rootElement = document.getElementById('root');
-        if (rootElement) {
-            createRoot(rootElement).render(<FiskeAppen/>);
-        }
+      const contextInfo = `Beteslåda: ${JSON.stringify(lures)}. Fångster: ${JSON.stringify(catches)}.`;
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: "Du är en expert på fiske som hjälper till med betesval och taktik. " + contextInfo },
+            { role: "user", content: userMsg }
+          ]
+        })
+      });
+      const data = await res.json();
+      const reply = data.choices?.[0]?.message?.content || "Kunde inte svara just nu.";
+      setMessages(prev => [...prev, { sender: 'ai', text: reply }]);
     } catch (err) {
-        console.error("Kunde inte starta appen:", err);
+      setMessages(prev => [...prev, { sender: 'ai', text: "Ett nätverksfel uppstod vid kontakt med servern." }]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  return (
+    <div className="p-4 flex flex-col h-[calc(100vh-140px)] max-w-xl mx-auto">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border mb-3 flex items-center justify-between">
+        <h2 className={`text-xl font-bold ${currentTheme.text} flex items-center gap-2`}><Bot className="h-6 w-6"/> {t('ai_title')}</h2>
+        <span className="bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1 rounded-full">PRO Aktiv</span>
+      </div>
+      <div className="flex-1 bg-white border rounded-2xl p-4 shadow-sm overflow-y-auto space-y-3 mb-3">
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm ${m.sender === 'user' ? `${currentTheme.bg} text-white rounded-br-none` : 'bg-slate-100 text-slate-800 rounded-bl-none'}`}>
+              {m.text}
+            </div>
+          </div>
+        ))}
+        {loading && <div className="text-slate-400 text-sm flex items-center gap-2"><Loader2 className="animate-spin h-4 w-4"/> {t('ai_thinking')}</div>}
+        <div ref={chatEndRef} />
+      </div>
+      <form onSubmit={handleSend} className="flex gap-2">
+        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder={t('ai_placeholder')} className="flex-1 p-3.5 bg-white border rounded-xl outline-none text-sm shadow-sm" />
+        <button type="submit" disabled={loading} className={`${currentTheme.bg} text-white px-5 rounded-xl shadow flex items-center justify-center`}><Send className="h-5 w-5"/></button>
+      </form>
+    </div>
+  );
+}
+
+// --- FLÖDE MED SMHI VÄDER ---
+function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }) {
+  const [weather, setWeather] = useState(null);
+
+  useEffect(() => {
+    fetch('https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/18.0686/lat/59.3293/data.json')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.timeSeries && data.timeSeries.length > 0) {
+          const current = data.timeSeries[0];
+          const tempParam = current.parameters.find(p => p.name === 't');
+          const windParam = current.parameters.find(p => p.name === 'ws');
+          const pressureParam = current.parameters.find(p => p.name === 'msl');
+          setWeather({
+            temp: tempParam ? tempParam.values[0] : '--',
+            wind: windParam ? windParam.values[0] : '--',
+            pressure: pressureParam ? pressureParam.values[0] : '--',
+            forecasts: data.timeSeries.slice(0, 7)
+          });
+        }
+      })
+      .catch(err => console.error("Kunde inte hämta SMHI-väder:", err));
+  }, []);
+
+  const handleLike = async (post) => {
+    if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
+    const ref = db.collection('artifacts').doc(appId).collection('public_feed').doc(post.id);
+    const likes = post.likes || [];
+    if (likes.includes(user.uid)) await ref.update({ likes: firebase.firestore.FieldValue.arrayRemove(user.uid) });
+    else await ref.update({ likes: firebase.firestore.FieldValue.arrayUnion(user.uid) });
+  };
+
+  return (
+    <div className="p-4 space-y-4 max-w-xl mx-auto">
+      {!isPro && (
+        <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-white p-4 rounded-2xl shadow-md flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-sm flex items-center gap-1.5"><Sparkles className="h-4 w-4"/> Lås upp BiteTracker PRO</h3>
+            <p className="text-xs text-amber-100 mt-0.5">Logga in för att spara fångster och beten permanent!</p>
+          </div>
+          <button onClick={() => setShowAuthModal(true)} className="bg-white text-amber-900 font-bold px-4 py-2 rounded-xl text-xs shadow">Logga In</button>
+        </div>
+      )}
+
+      {/* SMHI Väder & Fiskeprognos Widget */}
+      <div className="bg-gradient-to-br from-teal-800 to-slate-900 text-white p-4 rounded-2xl shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-[10px] text-teal-300 uppercase tracking-widest font-black">SMHI Väder & Prognos</span>
+            <h3 className="font-bold text-base flex items-center gap-1.5"><SunIcon className="h-5 w-5 text-amber-400"/> {weather ? `${weather.temp}°C` : 'Laddar...'} • Vind {weather ? `${weather.wind} m/s` : ''}</h3>
+            <p className="text-xs text-slate-300 mt-0.5">Lufttryck: {weather ? `${weather.pressure} hPa` : 'Laddar...'}</p>
+          </div>
+          <div className="bg-amber-400 text-slate-900 font-black px-3 py-2 rounded-xl text-center text-xs shadow">
+            <span>🔥 Nappindex</span>
+            <span className="block text-sm">8/10</span>
+          </div>
+        </div>
+
+        {isPro && weather && weather.forecasts && (
+          <div className="border-t border-teal-700/50 pt-2">
+            <p className="text-[10px] font-bold text-teal-300 mb-1 uppercase">7-dagars PRO Prognos</p>
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {weather.forecasts.map((f, idx) => {
+                const tVal = f.parameters.find(p => p.name === 't')?.values[0];
+                const dateObj = new Date(f.validTime);
+                const dayStr = dateObj.toLocaleDateString('sv-SE', { weekday: 'short' });
+                return (
+                  <div key={idx} className="bg-teal-900/60 p-1.5 rounded-lg text-[10px]">
+                    <span className="block font-bold text-teal-200">{dayStr}</span>
+                    <span className="block text-amber-300">{tVal !== undefined ? `${Math.round(tVal)}°` : ''}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-between">
+        <div>
+          <h2 className={`text-xl font-bold ${currentTheme.text}`}>Fiske-Flöde</h2>
+          <p className="text-xs text-slate-500">Se vad andra fiskare drar upp i realtid</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {globalFeed.length === 0 ? (
+          <div className="text-center p-8 bg-white rounded-2xl border border-dashed">
+            <p className="text-slate-500 text-sm">Inga fångster i flödet ännu.</p>
+          </div>
+        ) : (
+          globalFeed.map(post => {
+            const likesCount = (post.likes || []).length;
+            const hasLiked = user && !user.isAnonymous && (post.likes || []).includes(user.uid);
+            return (
+              <div key={post.id} className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                <div className="p-4 flex items-center justify-between border-b">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs">{post.authorName?.charAt(0) || 'F'}</div>
+                    <div>
+                      <span className="font-bold text-sm block">{post.authorName || 'Fiskare'}</span>
+                      <span className="text-[10px] text-slate-400">{post.location || 'Sverige'}</span>
+                    </div>
+                  </div>
+                  <span className="bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-bold">{post.species}</span>
+                </div>
+                {post.image && <img src={post.image} alt={post.species} className="w-full h-64 object-cover" />}
+                <div className="p-4 space-y-2">
+                  <p className="text-sm font-semibold">⚖️ {post.weight} kg {post.length ? `• 📏 ${post.length} cm` : ''} {post.lure ? `• 🎣 ${post.lure}` : ''}</p>
+                  {post.description && <p className="text-xs text-slate-600">"{post.description}"</p>}
+                  <div className="pt-2 flex items-center gap-4">
+                    <button onClick={() => handleLike(post)} className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl ${hasLiked ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'}`}>
+                      <Heart className={`h-4 w-4 ${hasLiked ? 'fill-red-500 text-red-500' : ''}`}/> {likesCount}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- TÄVLINGAR & JOINA TÄVLING ---
+function CompetitionView({ globalFeed, user, t, currentTheme, isPro }) {
+  const [competitions, setCompetitions] = useState([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [compTitle, setCompTitle] = useState('');
+  const [compTarget, setCompTarget] = useState('Gädda');
+  const [joinCode, setJoinCode] = useState('');
+
+  useEffect(() => {
+    const ref = db.collection('artifacts').doc(appId).collection('competitions');
+    return ref.onSnapshot(snap => {
+      const list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      setCompetitions(list);
+    });
+  }, []);
+
+  const handleCreateComp = async (e) => {
+    e.preventDefault();
+    if (!compTitle) return;
+    await db.collection('artifacts').doc(appId).collection('competitions').add({
+      title: compTitle,
+      target: compTarget,
+      creator: user?.email || 'Fiskare',
+      code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+      participants: [user?.uid || 'guest'],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    setShowCreateModal(false);
+    setCompTitle('');
+    alert("Privat tävling skapad! Dela koden med dina kompisar.");
+  };
+
+  const handleJoinComp = async (e) => {
+    e.preventDefault();
+    if (!joinCode) return;
+    const snap = await db.collection('artifacts').doc(appId).collection('competitions').where('code', '==', joinCode.toUpperCase()).get();
+    if (snap.empty) {
+      alert("Hittade ingen tävling med den koden.");
+    } else {
+      const doc = snap.docs[0];
+      await doc.ref.update({
+        participants: firebase.firestore.FieldValue.arrayUnion(user?.uid || 'guest')
+      });
+      alert(`Du har gått med i tävlingen: ${doc.data().title}!`);
+      setJoinCode('');
+    }
+  };
+
+  const sorted = [...globalFeed].sort((a, b) => b.weight - a.weight);
+
+  return (
+    <div className="p-4 space-y-4 max-w-xl mx-auto">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-between">
+        <div>
+          <h2 className={`text-xl font-bold ${currentTheme.text} flex items-center gap-2`}><Trophy className="h-6 w-6 text-amber-500"/> Tävlingar</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Global topplista eller skapa egen med kompisarna</p>
+        </div>
+        <button onClick={() => { if(!isPro){alert("Logga in för att skapa privata tävlingar!"); return;} setShowCreateModal(true); }} className={`${currentTheme.bg} text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow`}>
+          + Skapa Privat
+        </button>
+      </div>
+
+      <form onSubmit={handleJoinComp} className="bg-white p-4 rounded-2xl shadow-sm border flex gap-2">
+        <input type="text" placeholder="Skriv in inbjudningskod..." value={joinCode} onChange={e => setJoinCode(e.target.value)} className="flex-1 p-3 bg-slate-50 border rounded-xl text-sm uppercase" />
+        <button type="submit" className="bg-amber-600 text-white font-bold px-4 rounded-xl text-xs">Gå med</button>
+      </form>
+
+      {competitions.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-2">
+          <h3 className="font-bold text-amber-900 text-sm">Privata Vän-Tävlingar</h3>
+          {competitions.map(c => (
+            <div key={c.id} className="bg-white p-3 rounded-xl flex items-center justify-between shadow-sm">
+              <div>
+                <p className="font-bold text-sm text-slate-800">🏆 {c.title}</p>
+                <p className="text-[10px] text-slate-500">Mål: {c.target} • Skapad av {c.creator}</p>
+              </div>
+              <div className="text-right">
+                <span className="block text-[10px] text-slate-400 font-bold uppercase">Inbjudningskod</span>
+                <span className="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-1 rounded-lg">{c.code}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl shadow-sm border p-4 space-y-3">
+        <h3 className="font-bold text-sm text-slate-700">Månadens Globala Topplista</h3>
+        {sorted.length === 0 ? <p className="text-xs text-slate-400">Inga tävlingsbidrag ännu.</p> : sorted.slice(0, 5).map((item, index) => (
+          <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+            <div className="flex items-center gap-3">
+              <span className={`font-black text-sm ${index === 0 ? 'text-amber-500 text-lg' : 'text-slate-500'}`}>#{index + 1}</span>
+              <div>
+                <p className="font-bold text-sm">{item.species}</p>
+                <p className="text-[10px] text-slate-400">{item.authorName || 'Fiskare'} • {item.location || 'Sverige'}</p>
+              </div>
+            </div>
+            <span className="font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg text-sm">{item.weight} kg</span>
+          </div>
+        ))}
+      </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
+          <form onSubmit={handleCreateComp} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
+            <h3 className="font-bold text-lg text-slate-800">Skapa Privat Tävling</h3>
+            <input type="text" placeholder="Tävlingens namn (t.ex. Gängets Gäddfiske)" value={compTitle} onChange={e => setCompTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            <select value={compTarget} onChange={e => setCompTarget(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+              <option value="Gädda">Gädda</option>
+              <option value="Abborre">Abborre</option>
+              <option value="Gös">Gös</option>
+              <option value="Alla arter">Alla arter</option>
+            </select>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
+              <button type="submit" className="flex-1 bg-amber-600 text-white font-bold p-3 rounded-xl text-sm">Skapa</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- PROFIL & BYTA PROFILBILD ---
+function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal }) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [friends, setFriends] = useState([]);
+
+  useEffect(() => {
+    if (!user || user.isAnonymous) return;
+    const ref = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('friends');
+    return ref.onSnapshot(snap => {
+      const list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      setFriends(list);
+    });
+  }, [user]);
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!user || user.isAnonymous) {
+      setShowAuthModal(true);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Image = reader.result;
+      await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({
+        avatar: base64Image
+      }, { merge: true });
+      alert("Profilbild uppdaterad!");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSearchFriends = async (e) => {
+    e.preventDefault();
+    if (!searchQuery) return;
+    const snap = await db.collection('artifacts').doc(appId).collection('users').get();
+    const list = [];
+    snap.forEach(doc => {
+      const data = doc.data();
+      if (doc.id !== user.uid) {
+        list.push({ id: doc.id, name: data.displayName || 'Fiskare' });
+      }
+    });
+    setSearchResults(list.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())));
+  };
+
+  const handleAddFriend = async (friend) => {
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('friends').doc(friend.id).set({
+      name: friend.name,
+      addedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert(`Lagt till ${friend.name} som vän!`);
+  };
+
+  return (
+    <div className="p-4 space-y-4 max-w-xl mx-auto">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border text-center space-y-3">
+        <div className="relative w-24 h-24 mx-auto group">
+          {profile.avatar ? (
+            <img src={profile.avatar} alt="Profilbild" className="w-24 h-24 rounded-full object-cover shadow border-2 border-teal-700" />
+          ) : (
+            <div className="w-24 h-24 bg-teal-100 text-teal-800 rounded-full flex items-center justify-center text-3xl font-black shadow border-2 border-teal-700">
+              {profile.displayName ? profile.displayName.charAt(0) : '👤'}
+            </div>
+          )}
+          <label className="absolute bottom-0 right-0 bg-teal-700 text-white p-1.5 rounded-full cursor-pointer shadow hover:bg-teal-800 text-xs">
+            📷
+            <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+          </label>
+        </div>
+
+        <h2 className={`text-xl font-bold ${currentTheme.text}`}>{profile.displayName || 'Inloggad Fiskare'}</h2>
+        <p className="text-xs text-slate-500">{user?.email || (user?.isAnonymous ? 'Gäst-konto' : 'PRO-medlem')}</p>
+        {isPro ? (
+          <span className="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full"><Sparkles className="inline h-3 w-3"/> PRO Medlem Aktiv</span>
+        ) : (
+          <button onClick={() => setShowAuthModal(true)} className="bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow">Logga in för PRO</button>
+        )}
+      </div>
+
+      <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
+        <h3 className="font-bold text-sm text-slate-800 flex items-center gap-1.5"><UsersIcon className="h-5 w-5 text-teal-600"/> Sök & Lägg till Vänner</h3>
+        <form onSubmit={handleSearchFriends} className="flex gap-2">
+          <input type="text" placeholder="Sök efter fiskarkompis..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="flex-1 p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
+          <button type="submit" className={`${currentTheme.bg} text-white px-4 rounded-xl font-bold text-xs`}>Sök</button>
+        </form>
+
+        {searchResults.length > 0 && (
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-bold text-slate-400">Sökresultat:</p>
+            {searchResults.map(res => (
+              <div key={res.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl">
+                <span className="font-semibold text-sm">🎣 {res.name}</span>
+                <button onClick={() => handleAddFriend(res)} className="bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">Lägg till</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="pt-2">
+          <p className="text-xs font-bold text-slate-400 mb-2">Dina Vänner ({friends.length}):</p>
+          {friends.length === 0 ? <p className="text-xs text-slate-500">Inga vänner tillagda ännu.</p> : friends.map(f => (
+            <div key={f.id} className="p-2.5 bg-emerald-50 text-emerald-900 rounded-xl font-semibold text-sm mb-1 flex items-center justify-between">
+              <span>👤 {f.name}</span>
+              <span className="text-[10px] bg-white px-2 py-1 rounded">Aktiv</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- KARTA MED TYDLIGARE SJÖFÖRSLAG ---
+function MapView({ user, currentTheme, isPro }) {
+  const [leafletLoaded, setLeafletLoaded] = useState(false);
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+  const markersLayer = useRef(null);
+  const tileLayerRef = useRef(null);
+
+  const [mapStyle, setMapStyle] = useState('topo');
+  const [approvedLakes, setApprovedLakes] = useState([]);
+  const [privateMarkers, setPrivateMarkers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const [showSuggestModal, setShowSuggestModal] = useState(false);
+  const [showPrivateModal, setShowPrivateModal] = useState(false);
+  const [clickedCoords, setClickedCoords] = useState(null);
+
+  const [suggestName, setSuggestName] = useState('');
+  const [suggestRules, setSuggestRules] = useState('');
+  const [suggestFish, setSuggestFish] = useState('');
+
+  const [privateTitle, setPrivateTitle] = useState('');
+  const [privateType, setPrivateType] = useState('Brygga');
+
+  useEffect(() => {
+    const ref = db.collection('artifacts').doc(appId).collection('approved_lakes');
+    return ref.onSnapshot(snap => {
+      const list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      setApprovedLakes(list);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!user || user.isAnonymous) return;
+    const ref = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins');
+    return ref.onSnapshot(snap => {
+      const list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      setPrivateMarkers(list);
+    });
+  }, [user]);
+
+  useEffect(() => {
+    if (window.L) { setLeafletLoaded(true); return; }
+    const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(link);
+    const script = document.createElement('script'); script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; script.onload = () => setLeafletLoaded(true); document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (!leafletLoaded || !mapRef.current || mapInstance.current) return;
+    const map = window.L.map(mapRef.current, { zoomControl: false, tap: true }).setView([60.128, 18.643], 5);
     
-    const loader = document.getElementById('loading-screen');
-    if (loader) loader.remove();
-    </script>
-</body>
-</html>
+    const url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
+    tileLayerRef.current = window.L.tileLayer(url).addTo(map);
+    window.L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    map.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      setClickedCoords({ lat, lng });
+    });
+    mapInstance.current = map;
+    markersLayer.current = window.L.layerGroup().addTo(map);
+  }, [leafletLoaded]);
+
+  const changeMapLayer = (style) => {
+    if (!isPro) { alert("Att byta olika kartor (Satellit/Djupkarta) kräver PRO!"); return; }
+    setMapStyle(style);
+    if (!mapInstance.current || !window.L) return;
+    if (tileLayerRef.current) mapInstance.current.removeLayer(tileLayerRef.current);
+
+    let url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
+    if (style === 'satellite') url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+    if (style === 'depth') url = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+
+    tileLayerRef.current = window.L.tileLayer(url).addTo(mapInstance.current);
+  };
+
+  useEffect(() => {
+    if (!mapInstance.current || !markersLayer.current || !window.L) return;
+    markersLayer.current.clearLayers();
+
+    const lakeIcon = window.L.divIcon({
+      className: 'custom-div-icon',
+      html: "<div style='background-color:#0d9488; width:18px; height:18px; border-radius:50%; border:2px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.5); text-align:center; font-size:10px;'>🌊</div>",
+      iconSize: [22, 22], iconAnchor: [11, 11]
+    });
+
+    const privateIcon = window.L.divIcon({
+      className: 'custom-div-icon',
+      html: "<div style='background-color:#f59e0b; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.5); text-align:center; font-size:9px;'>⚓</div>",
+      iconSize: [20, 20], iconAnchor: [10, 10]
+    });
+
+    approvedLakes.forEach(l => {
+      if (l.lat && l.lng) {
+        const m = window.L.marker([l.lat, l.lng], { icon: lakeIcon }).addTo(markersLayer.current);
+        m.bindPopup(`<b>${l.name}</b><br>Fisk: ${l.fish || 'Diverse'}<br>Regler: ${l.rules}`);
+      }
+    });
+
+    if (isPro) {
+      privateMarkers.forEach(p => {
+        if (p.lat && p.lng) {
+          const m = window.L.marker([p.lat, p.lng], { icon: privateIcon }).addTo(markersLayer.current);
+          m.bindPopup(`<b>🔒 [PRO Privat] ${p.title}</b><br>Typ: ${p.type}`);
+        }
+      });
+    }
+  }, [approvedLakes, privateMarkers, isPro, leafletLoaded]);
+
+  const handleSearchLake = (e) => {
+    e.preventDefault();
+    const found = approvedLakes.find(l => l.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (found && mapInstance.current && found.lat && found.lng) {
+      mapInstance.current.setView([found.lat, found.lng], 12);
+    } else {
+      alert("Hittade ingen godkänd sjö med det namnet.");
+    }
+  };
+
+  const handleSendSuggestion = async (e) => {
+    e.preventDefault();
+    if (!suggestName || !clickedCoords) return;
+    await db.collection('artifacts').doc(appId).collection('lake_suggestions').add({
+      name: suggestName,
+      rules: suggestRules || 'Inga angivna regler',
+      fish: suggestFish || 'Diverse',
+      lat: clickedCoords.lat,
+      lng: clickedCoords.lng,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    setShowSuggestModal(false);
+    setSuggestName(''); setSuggestRules(''); setSuggestFish(''); setClickedCoords(null);
+    alert("✅ Sjön har skickats in! Den har lagts till i granskningskön och kommer att synas på kartan så fort en admin godkänner den.");
+  };
+
+  const handleSavePrivate = async (e) => {
+    e.preventDefault();
+    if (!isPro) { alert("Du behöver vara inloggad (PRO) för att spara privata markeringar!"); return; }
+    if (!privateTitle || !clickedCoords || !user) return;
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').add({
+      title: privateTitle,
+      type: privateType,
+      lat: clickedCoords.lat,
+      lng: clickedCoords.lng,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    setShowPrivateModal(false);
+    setPrivateTitle(''); setClickedCoords(null);
+    alert("✅ Privat PRO-plats sparad på ditt konto!");
+  };
+
+  return (
+    <div className="relative w-full h-[calc(100vh-140px)]">
+      <div className="absolute top-4 left-4 right-4 z-[400] max-w-xl mx-auto space-y-2">
+        <form onSubmit={handleSearchLake} className="flex gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-lg border">
+          <input type="text" placeholder="Sök sjö eller regler..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="flex-1 p-2 bg-slate-50 border rounded-xl text-sm outline-none" />
+          <button type="submit" className={`${currentTheme.bg} text-white px-4 rounded-xl font-bold text-xs`}>Sök Sjö</button>
+        </form>
+
+        {isPro && (
+          <div className="flex gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-xl shadow border text-xs">
+            <button onClick={() => changeMapLayer('topo')} className={`flex-1 py-1.5 rounded-lg font-bold ${mapStyle === 'topo' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>Standard</button>
+            <button onClick={() => changeMapLayer('satellite')} className={`flex-1 py-1.5 rounded-lg font-bold ${mapStyle === 'satellite' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>🛰️ Satellit</button>
+            <button onClick={() => changeMapLayer('depth')} className={`flex-1 py-1.5 rounded-lg font-bold ${mapStyle === 'depth' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>🗺️ Djupkarta</button>
+          </div>
+        )}
+      </div>
+
+      <div ref={mapRef} className="w-full h-full" />
+
+      {clickedCoords && !showSuggestModal && !showPrivateModal && (
+        <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border z-[1000] max-w-xl mx-auto space-y-3">
+          <div className="flex justify-between items-center">
+            <h3 className="font-bold text-slate-800 text-sm">📍 Position vald ({clickedCoords.lat.toFixed(3)}, {clickedCoords.lng.toFixed(3)})</h3>
+            <button onClick={() => setClickedCoords(null)} className="text-slate-400"><X className="h-5 w-5"/></button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => setShowSuggestModal(true)} className="bg-teal-700 text-white font-bold p-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow">
+              <BookOpen className="h-4 w-4"/> Föreslå sjö till karta
+            </button>
+            <button onClick={() => { if (!isPro) { alert("Logga in för att använda privata PRO-markeringar!"); return; } setShowPrivateModal(true); }} className="bg-amber-600 text-white font-bold p-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow">
+              <Anchor className="h-4 w-4"/> {isPro ? 'Lägg till privat brygga' : '🔒 Privat brygga (PRO)'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showSuggestModal && (
+        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
+          <form onSubmit={handleSendSuggestion} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
+            <h3 className="font-bold text-lg text-slate-800">Föreslå Sjökarta & Regler</h3>
+            <p className="text-xs text-slate-500">När du skickar in hamnar den i granskningskön och publiceras när den godkänts av admin.</p>
+            <input type="text" placeholder="Sjöns namn" value={suggestName} onChange={e => setSuggestName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            <input type="text" placeholder="Fiskarter (t.ex. Gädda, Abborre)" value={suggestFish} onChange={e => setSuggestFish(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            <textarea placeholder="Regler & fiskekort info..." value={suggestRules} onChange={e => setSuggestRules(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-24 resize-none" />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowSuggestModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
+              <button type="submit" className="flex-1 bg-teal-700 text-white font-bold p-3 rounded-xl text-sm">Skicka in</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showPrivateModal && (
+        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
+          <form onSubmit={handleSavePrivate} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
+            <h3 className="font-bold text-lg text-slate-800">Lägg till privat PRO-markering</h3>
+            <input type="text" placeholder="Titel (t.ex. Min båtbrygga)" value={privateTitle} onChange={e => setPrivateTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            <select value={privateType} onChange={e => setPrivateType(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+              <option value="Brygga">Båtbrygga</option>
+              <option value="Hemlig spot">Hemlig fiskeplats</option>
+              <option value="Sjöramp">Sjöramp / Sjösättning</option>
+            </select>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowPrivateModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
+              <button type="submit" className="flex-1 bg-amber-600 text-white font-bold p-3 rounded-xl text-sm">Spara Privat</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- LOGGA FÅNGST (SPARAS PERMANENT I FIRESTORE) ---
+function CatchLogView({ user, t, currentTheme, profile }) {
+  const [species, setSpecies] = useState('');
+  const [weight, setWeight] = useState('');
+  const [length, setLength] = useState('');
+  const [lure, setLure] = useState('');
+  const [description, setDescription] = useState('');
+  const [image, setImage] = useState(null);
+  const [location, setLocation] = useState('');
+  const [sharePublic, setSharePublic] = useState(true);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!species || !weight || !location) return;
+    const data = {
+      species,
+      weight: parseFloat(weight),
+      length: length ? parseFloat(length) : null,
+      lure,
+      description,
+      image,
+      location,
+      authorName: profile.displayName || 'Fiskare',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').add(data);
+    if (sharePublic) {
+      await db.collection('artifacts').doc(appId).collection('public_feed').add(data);
+    }
+
+    setSpecies(''); setWeight(''); setLength(''); setLure(''); setDescription(''); setImage(null); setLocation('');
+    alert(sharePublic ? "✅ Fångsten sparad och publicerad i flödet (och sparad på ditt konto)!" : "✅ Fångst sparad privat på ditt konto!");
+  };
+
+  return (
+    <div className="p-4 max-w-xl mx-auto space-y-4">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border"><h2 className={`text-xl font-bold ${currentTheme.text}`}>Logga Fångst</h2></div>
+      <form onSubmit={handleSave} className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
+        <input type="text" placeholder="Fiskart (t.ex. Gädda)" value={species} onChange={e => setSpecies(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
+        <div className="grid grid-cols-2 gap-2">
+          <input type="number" step="0.1" placeholder="Vikt (kg)" value={weight} onChange={e => setWeight(e.target.value)} required className="p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
+          <input type="number" placeholder="Längd (cm)" value={length} onChange={e => setLength(e.target.value)} className="p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
+        </div>
+        <input type="text" placeholder="Bete / Drag" value={lure} onChange={e => setLure(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
+        <input type="text" placeholder="Plats / Sjö" value={location} onChange={e => setLocation(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
+        <textarea placeholder="Beskrivning..." value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none resize-none h-20" />
+        
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-500">Bifoga foto på fångst:</label>
+          <input type="file" accept="image/*" onChange={e => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onloadend = () => setImage(r.result); r.readAsDataURL(f); }}} className="w-full text-xs" />
+        </div>
+
+        <label className="flex items-center gap-2 pt-2 cursor-pointer">
+          <input type="checkbox" checked={sharePublic} onChange={e => setSharePublic(e.target.checked)} className="w-4 h-4 rounded text-teal-700" />
+          <span className="text-xs font-bold text-slate-700">Dela fångsten med andra i det globala flödet</span>
+        </label>
+
+        <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3.5 rounded-xl shadow`}>Spara Fångst</button>
+      </form>
+    </div>
+  );
+}
+
+// --- BETESLÅDAN (SPARAS PERMANENT I FIRESTORE) ---
+function TackleBoxView({ user, lures, t, currentTheme }) {
+  const [name, setName] = useState(''); const [type, setType] = useState(''); const [color, setColor] = useState('');
+  
+  const handleAdd = async (e) => {
+    e.preventDefault(); 
+    if (!name) return;
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures').add({ 
+      name, 
+      type, 
+      color, 
+      createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+    });
+    setName(''); setType(''); setColor('');
+    alert("✅ Betet har sparats permanent i din beteslåda!");
+  };
+
+  return (
+    <div className="p-4 max-w-xl mx-auto space-y-4">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border"><h2 className={`text-xl font-bold ${currentTheme.text}`}>Beteslådan</h2></div>
+      <form onSubmit={handleAdd} className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
+        <input type="text" placeholder="Betets namn" value={name} onChange={e => setName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+        <input type="text" placeholder="Typ (t.ex. Jerkbait)" value={type} onChange={e => setType(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+        <input type="text" placeholder="Färg" value={color} onChange={e => setColor(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+        <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3 rounded-xl shadow`}>Lägg till i lådan</button>
+      </form>
+    </div>
+  );
+}
+
+// --- INSTÄLLNINGAR & PERMANENT ADMIN-LÄGE ---
+function SettingsView({ user, profile, t, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro }) {
+  const [name, setName] = useState(profile.displayName || '');
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  
+  const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bitetracker_admin') === 'true');
+  const [pendingLakes, setPendingLakes] = useState([]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const ref = db.collection('artifacts').doc(appId).collection('lake_suggestions');
+    return ref.onSnapshot(snap => {
+      const list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      setPendingLakes(list.filter(l => l.status === 'pending'));
+    });
+  }, [isAdmin]);
+
+  const handleSaveName = async (e) => {
+    e.preventDefault();
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ displayName: name }, { merge: true });
+    alert("Profil sparad!");
+  };
+
+  const handleCheckPin = (e) => {
+    e.preventDefault();
+    if (pinInput === '6031') {
+      setIsAdmin(true);
+      localStorage.setItem('bitetracker_admin', 'true');
+      setShowPinModal(false);
+      setPinInput('');
+      alert("Admin-läge aktiverat permanent på denna enhet!");
+    } else {
+      alert("Felaktig pinkod!");
+    }
+  };
+
+  const handleLogoutAdmin = () => {
+    setIsAdmin(false);
+    localStorage.removeItem('bitetracker_admin');
+    alert("Admin-läge avaktiverat.");
+  };
+
+  const handleApproveLake = async (lake) => {
+    await db.collection('artifacts').doc(appId).collection('approved_lakes').add({
+      name: lake.name,
+      rules: lake.rules,
+      fish: lake.fish,
+      lat: lake.lat,
+      lng: lake.lng,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(lake.id).delete();
+    alert("Sjön godkänd och publicerad på kartan!");
+  };
+
+  const handleDeleteSuggestion = async (id) => {
+    await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(id).delete();
+  };
+
+  return (
+    <div className="p-4 max-w-xl mx-auto space-y-4">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-between">
+        <h2 className={`text-xl font-bold ${currentTheme.text}`}>Inställningar</h2>
+        {isPro ? (
+          <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1"><Sparkles className="h-3.5 w-3.5"/> PRO Aktiv</span>
+        ) : (
+          <button onClick={() => setShowAuthModal(true)} className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow">Logga in för PRO</button>
+        )}
+      </div>
+      
+      <form onSubmit={handleSaveName} className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
+        <label className="text-xs font-bold text-slate-700">Ditt Fiske-Namn</label>
+        <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+        <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3 rounded-xl`}>Spara Namn</button>
+      </form>
+
+      <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
+        <label className="text-xs font-bold text-slate-700">Välj App-Tema</label>
+        <div className="grid grid-cols-3 gap-2">
+          <button onClick={() => setAppTheme('blue')} className={`p-3 rounded-xl font-bold text-white bg-blue-900 ${appTheme === 'blue' ? 'ring-2 ring-offset-2 ring-blue-900' : ''}`}>Blå</button>
+          <button onClick={() => setAppTheme('teal')} className={`p-3 rounded-xl font-bold text-white bg-teal-700 ${appTheme === 'teal' ? 'ring-2 ring-offset-2 ring-teal-700' : ''}`}>Grön</button>
+          <button onClick={() => setAppTheme('sunset')} className={`p-3 rounded-xl font-bold text-white bg-amber-800 ${appTheme === 'sunset' ? 'ring-2 ring-offset-2 ring-amber-800' : ''}`}>Solnedgång</button>
+        </div>
+      </div>
+
+      {!isAdmin ? (
+        <button onClick={() => setShowPinModal(true)} className="w-full bg-slate-800 text-white font-bold p-4 rounded-2xl text-sm">Logga in i Admin-läge</button>
+      ) : (
+        <div className="bg-slate-900 text-white p-4 rounded-2xl space-y-3">
+          <div className="flex justify-between items-center">
+            <h3 className="font-bold text-amber-400 flex items-center gap-2"><ShieldAlert className="h-5 w-5"/> Admin-panel</h3>
+            <button onClick={handleLogoutAdmin} className="text-xs text-red-400 underline">Logga ut från Admin</button>
+          </div>
+          <p className="text-xs text-slate-400">Väntande sjöförslag:</p>
+          {pendingLakes.length === 0 ? <p className="text-xs text-slate-400">Inga väntande sjöförslag just nu.</p> : pendingLakes.map(l => (
+            <div key={l.id} className="bg-slate-800 p-3 rounded-xl space-y-2 border border-slate-700">
+              <p className="font-bold text-sm">🌊 {l.name}</p>
+              <p className="text-xs text-slate-300"><b>Regler:</b> {l.rules}</p>
+              <p className="text-xs text-slate-300"><b>Fisk:</b> {l.fish}</p>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => handleApproveLake(l)} className="flex-1 bg-emerald-600 text-white p-2 rounded-lg text-xs font-bold">Godkänn</button>
+                <button onClick={() => handleDeleteSuggestion(l.id)} className="flex-1 bg-red-600 text-white p-2 rounded-lg text-xs font-bold">Neka</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showPinModal && (
+        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
+          <form onSubmit={handleCheckPin} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
+            <h3 className="font-bold text-lg text-slate-800">Slå in Admin-kod</h3>
+            <input type="password" placeholder="Pinkod..." value={pinInput} onChange={e => setPinInput(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm tracking-widest text-center" />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowPinModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
+              <button type="submit" className="flex-1 bg-slate-900 text-white font-bold p-3 rounded-xl text-sm">Lås upp</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NavItem({ Icon, label, isActive, onClick, currentTheme }) {
+  return (
+    <button onClick={onClick} className={`flex flex-col items-center justify-center py-1.5 px-3 min-w-[50px] rounded-xl transition ${ isActive ? `${currentTheme.text} ${currentTheme.light} font-bold scale-105` : 'text-slate-400' }`}>
+      <Icon className="h-5 w-5 mb-0.5"/> <span className="text-[9px]">{label}</span>
+    </button>
+  );
+}
+
+// --- HUVUDAPPEN ---
+function FiskeAppen() {
+  const [user, setUser] = useState(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [activeTab, setActiveTab] = useState('feed');
+  const [catches, setCatches] = useState([]);
+  const [globalFeed, setGlobalFeed] = useState([]);
+  const [lures, setLures] = useState([]);
+  const [profile, setProfile] = useState({});
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
+  const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
+  const isPro = user && !user.isAnonymous;
+
+  const t = (key) => translations['sv']?.[key] || key;
+  const currentTheme = themes[appTheme] || themes.blue;
+
+  useEffect(() => {
+    const initAuth = async () => { 
+      try { await auth.signInAnonymously(); } catch (error) {} 
+      setIsLoadingAuth(false); 
+    };
+    initAuth();
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const catchesRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches');
+    const unsubC = catchesRef.onSnapshot((snap) => { 
+      const f = []; 
+      snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+      f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+      setCatches(f); 
+    });
+    
+    const globalRef = db.collection('artifacts').doc(appId).collection('public_feed');
+    const unsubG = globalRef.onSnapshot((snap) => { 
+      const f = []; 
+      snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+      f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+      setGlobalFeed(f); 
+    });
+    
+    const luresRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures');
+    const unsubL = luresRef.onSnapshot((snap) => { 
+      const f = []; 
+      snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+      f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+      setLures(f); 
+    }, (error) => {});
+
+    const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
+    const unsubP = profileRef.onSnapshot((docSnap) => { 
+      if (docSnap.exists) setProfile(docSnap.data()); 
+    });
+
+    return () => { unsubC(); unsubG(); unsubL(); unsubP(); };
+  }, [user]);
+
+  if (isLoadingAuth) {
+    return (
+      <div className="flex flex-col h-screen items-center justify-center bg-slate-900 text-white">
+        <img src="179412295382.jpg" alt="Logo" className="h-28 w-28 rounded-3xl animate-bounce mb-6 object-cover" />
+        <h1 className="text-3xl font-black">BiteTracker</h1>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
+      <header className={`${currentTheme.bg} text-white p-4 shadow-md flex items-center justify-between z-10 shrink-0`}>
+        <div className="flex items-center gap-3">
+          <img src="179412295382.jpg" alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold">{t('appTitle')}</h1>
+            {isPro && <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow"><Sparkles className="h-3 w-3"/> PRO</span>}
+          </div>
+        </div>
+        <button onClick={() => setShowAuthModal(true)} className="flex items-center gap-1.5 text-white/90 py-1 px-3 bg-black/20 rounded-xl text-xs font-bold">
+          <User className="h-4 w-4"/> {user?.isAnonymous ? 'Logga In för PRO' : (profile.displayName || user?.email || t('loggedIn'))}
+        </button>
+      </header>
+
+      <main className="flex-1 overflow-y-auto pb-20">
+        {activeTab === 'feed' && <FeedView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} setShowAuthModal={setShowAuthModal} t={t} user={user}/>}
+        {activeTab === 'compete' && <CompetitionView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} t={t} user={user}/>}
+        {activeTab === 'ai' && <AIChatView catches={catches} currentTheme={currentTheme} lures={lures} t={t}/>}
+        {activeTab === 'map' && <MapView currentTheme={currentTheme} isPro={isPro} user={user}/>}
+        {activeTab === 'log' && <CatchLogView currentTheme={currentTheme} profile={profile} t={t} user={user}/>}
+        {activeTab === 'box' && <TackleBoxView currentTheme={currentTheme} lures={lures} t={t} user={user}/>}
+        {activeTab === 'profile' && <ProfileView currentTheme={currentTheme} isPro={isPro} profile={profile} setShowAuthModal={setShowAuthModal} user={user}/>}
+        {activeTab === 'settings' && <SettingsView appTheme={appTheme} currentTheme={currentTheme} isPro={isPro} profile={profile} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} t={t} user={user}/>}
+      </main>
+
+      <nav className="fixed bottom-0 w-full bg-white border-t border-slate-200 z-20 shadow">
+        <div className="flex justify-around items-center p-1.5 overflow-x-auto no-scrollbar">
+          <NavItem Icon={Compass} isActive={activeTab === 'feed'} label={t('nav_feed')} onClick={() => setActiveTab('feed')} currentTheme={currentTheme} />
+          <NavItem Icon={Trophy} isActive={activeTab === 'compete'} label={t('nav_compete')} onClick={() => setActiveTab('compete')} currentTheme={currentTheme} />
+          <NavItem Icon={Bot} isActive={activeTab === 'ai'} label={t('nav_ai')} onClick={() => setActiveTab('ai')} currentTheme={currentTheme} />
+          <NavItem Icon={MapComponent} isActive={activeTab === 'map'} label={t('nav_map')} onClick={() => setActiveTab('map')} currentTheme={currentTheme} />
+          <NavItem Icon={Fish} isActive={activeTab === 'log'} label={t('nav_log')} onClick={() => setActiveTab('log')} currentTheme={currentTheme} />
+          <NavItem Icon={Package} isActive={activeTab === 'box'} label={t('nav_box')} onClick={() => setActiveTab('box')} currentTheme={currentTheme} />
+          <NavItem Icon={User} isActive={activeTab === 'profile'} label={t('nav_profile')} onClick={() => setActiveTab('profile')} currentTheme={currentTheme} />
+          <NavItem Icon={Settings} isActive={activeTab === 'settings'} label={t('nav_settings')} onClick={() => setActiveTab('settings')} currentTheme={currentTheme} />
+        </div>
+      </nav>
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} user={user} currentTheme={currentTheme} />
+      <WelcomeProModal isOpen={showWelcomeModal && user?.isAnonymous} onClose={() => setShowWelcomeModal(false)} onLoginClick={() => setShowAuthModal(true)} />
+    </div>
+  );
+}
+
+try {
+    const rootElement = document.getElementById('root');
+    if (rootElement) {
+        createRoot(rootElement).render(<FiskeAppen/>);
+    }
+} catch (err) {
+    console.error("Kunde inte starta appen:", err);
+}
+
+const loader = document.getElementById('loading-screen');
+if (loader) loader.remove();
+</script>
