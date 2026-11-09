@@ -1,157 +1,42 @@
-<!DOCTYPE html>
-<html lang="sv">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BiteTracker Pro</title>
-    <link rel="icon" type="image/jpeg" href="179412295382.jpg">
-    <link rel="apple-touch-icon" href="179412295382.jpg">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#134e4a">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.min.js"></script>
-    
-    <!-- Stabil Firebase Compat SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
-
-    <!-- React 18 och Lucide -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <style>
-      .no-scrollbar::-webkit-scrollbar { display: none; }
-      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      .leaflet-container { z-index: 0; outline: none; }
-    </style>
-</head>
-<body class="bg-slate-50 overflow-hidden text-slate-800">
-    <!-- Snygg laddningsskärm -->
-    <div id="loading-screen" class="flex flex-col h-screen w-full items-center justify-center bg-slate-900 fixed inset-0 z-[9999]">
-        <div class="relative flex flex-col items-center">
-            <!-- Animerad logga -->
-            <img src="179412295382.jpg" alt="BiteTracker Logo" class="w-28 h-28 rounded-3xl object-cover shadow-[0_0_40px_rgba(20,184,166,0.3)] animate-bounce border border-teal-800/50">
-            
-            <!-- Laddnings-prickar -->
-            <div class="flex gap-2 mt-8">
-                <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0s"></div>
-                <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0.2s"></div>
-                <div class="w-2.5 h-2.5 bg-teal-500 rounded-full animate-ping" style="animation-delay: 0.4s"></div>
-            </div>
-        </div>
-        
-        <!-- Text -->
-        <h1 class="text-3xl font-black tracking-tight mt-8 text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-300">
-            BiteTracker
-        </h1>
-        <p class="text-slate-400 text-sm mt-3 font-medium animate-pulse">
-            Gör redo beteslådan...
-        </p>
-    </div>
-
-    <!-- Huvudappens startpunkt -->
-    <div id="root"></div>
-
-    <!-- Dold felruta om något mot förmodan kraschar -->
-    <div id="app-error" style="display:none;" class="flex flex-col h-screen w-full items-center justify-center bg-slate-900 text-white p-6 fixed inset-0 z-[10000]">
-        <div class="bg-red-900/80 border border-red-500 p-6 rounded-3xl max-w-md text-center shadow-2xl">
-           <h2 class="text-xl font-bold text-red-200 mb-2">Kunde inte starta appen</h2>
-            <p id="error-message" class="text-xs text-red-100 mb-4">Ett oväntat fel uppstod när appen skulle laddas.</p>
-            <button onclick="window.location.reload()" class="bg-white text-red-900 font-bold px-5 py-2.5 rounded-xl text-xs shadow">
-                Försök igen
-            </button>
-        </div>
-    </div>
-
 <script type="text/babel">
-
         const { useState, useEffect, useRef } = React;
-
         const { createRoot } = ReactDOM;
-
         const { User, Sparkles, Compass, Trophy, Bot, MapIcon, Fish, Package, Settings, Heart, Anchor, BookOpen, ShieldAlert, Loader2, Send, X } = lucide;
 
-
-
         // --- INLOGGNINGSFUNKTIONER ---
-
-        
-
-        // Logga in med Google
-
         const handleGoogleLogin = async () => {
-
           try {
-
             const provider = new firebase.auth.GoogleAuthProvider();
-
             await auth.signInWithPopup(provider);
-
           } catch (err) {
-
             console.error("Google-inloggning misslyckades:", err);
-
             alert("Kunde inte logga in med Google.");
-
           }
-
         };
-
-
-
-        // Logga in / Registrera med E-post och lösenord
 
         const handleEmailAuth = async (email, password, isSignUp) => {
-
           try {
-
             if (isSignUp) {
-
               await auth.createUserWithEmailAndPassword(email, password);
-
             } else {
-
               await auth.signInWithEmailAndPassword(email, password);
-
             }
-
           } catch (err) {
-
             console.error("E-postinloggning misslyckades:", err);
-
             alert("Ett fel uppstod: " + err.message);
-
           }
-
         };
-
-
 
         const translations = {
-
           sv: {
-
             appTitle: "BiteTracker", loggedIn: "Inloggad",
-
             nav_feed: "Flöde", nav_ai: "AI", nav_map: "Karta", nav_log: "Fångster", nav_box: "Låda", nav_compete: "Tävling", nav_settings: "Inställningar",
-
             ai_title: "Fiske-AI", ai_placeholder: "Ställ en fiskefråga...", ai_thinking: "AI funderar...",
-
             auth_guest: "Gäst", auth_title: "Ditt Konto", auth_login: "Logga In", auth_signup: "Skapa Konto", auth_logout: "Logga Ut",
-
             pro_active: "PRO-Medlem Aktiv ✨"
-
           }
-
         };
-
                     
-
-                 
         const themes = {
           blue: { bg: 'bg-blue-900', text: 'text-blue-900', light: 'bg-blue-50' },
           teal: { bg: 'bg-teal-700', text: 'text-teal-700', light: 'bg-teal-50' },
@@ -160,142 +45,90 @@
 
         let parsedConfig = {};
         try { parsedConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {}; } catch (e) {}
-      const firebaseConfig = {
-  apiKey: "AIzaSyBe5L_7VjdC8G23_G7aBgvjnQoJ_cQOjOw",
-  authDomain: "bitetracker-4b619.firebaseapp.com",
-  projectId: "bitetracker-4b619",
-  storageBucket: "bitetracker-4b619.firebasestorage.app",
-  messagingSenderId: "1056235073612",
-  appId: "1:1056235073612:web:cd10ff4baaf05293e604e9",
-  measurementId: "G-YFCHL4RPWB"
-};
+        const firebaseConfig = {
+          apiKey: "AIzaSyBe5L_7VjdC8G23_G7aBgvjnQoJ_cQOjOw",
+          authDomain: "bitetracker-4b619.firebaseapp.com",
+          projectId: "bitetracker-4b619",
+          storageBucket: "bitetracker-4b619.firebasestorage.app",
+          messagingSenderId: "1056235073612",
+          appId: "1:1056235073612:web:cd10ff4baaf05293e604e9",
+          measurementId: "G-YFCHL4RPWB"
+        };
         
-        // Starta Firebase säkert med Compat
         const app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
         const auth = firebase.auth();
         const db = firebase.firestore();
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        // HUVUDKOMPONENT
-        function FiskeAppen() {
-          const [user, setUser] = useState(null);
-          const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-          const [activeTab, setActiveTab] = useState('feed');
-          const [catches, setCatches] = useState([]);
-          const [globalFeed, setGlobalFeed] = useState([]);
-          const [lures, setLures] = useState([]);
-          const [profile, setProfile] = useState({});
-          const [showAuthModal, setShowAuthModal] = useState(false);
-          const [lang, setLang] = useState('sv');
-          const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
-          const isPro = user && !user.isAnonymous;
+        // --- AUTH MODAL KOMPONENT (Flyttad hit upp så den finns tillgänglig) ---
+        function AuthModal({ isOpen, onClose, user, currentTheme }) {
+          const [isSignUp, setIsSignUp] = useState(false);
+          const [email, setEmail] = useState('');
+          const [password, setPassword] = useState('');
+          const [loading, setLoading] = useState(false);
+          const [error, setError] = useState(null);
 
-          const t = (key) => translations[lang]?.[key] || key;
-          const currentTheme = themes[appTheme] || themes.blue;
+          if (!isOpen) return null;
 
-useEffect(() => {
-  const initAuth = async () => { 
-    try { await auth.signInAnonymously(); } catch (error) {} 
-    setIsLoadingAuth(false); 
-  };
-  initAuth();
-  const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
-  return () => unsubscribe();
-}, []);
-         useEffect(() => {
-  if (!user) return;
-  
-  const catchesRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches');
-  const unsubC = catchesRef.onSnapshot((snap) => { 
-    const f = []; 
-    snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-    f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-    setCatches(f); 
-  });
-  
-  const globalRef = db.collection('artifacts').doc(appId).collection('public_feed');
-  const unsubG = globalRef.onSnapshot((snap) => { 
-    const f = []; 
-    snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-    f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-    setGlobalFeed(f); 
-  });
-  
-  const luresRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures');
-  const unsubL = luresRef.onSnapshot((snap) => { 
-    const f = []; 
-    snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-    f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-    setLures(f); 
-  });
-
-  const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
-  const unsubP = profileRef.onSnapshot((docSnap) => { 
-    if (docSnap.exists) setProfile(docSnap.data()); 
-  });
-
-  return () => { unsubC(); unsubG(); unsubL(); unsubP(); };
-}, [user]);
-          if (isLoadingAuth) {
-            return (
-              <div className="flex flex-col h-screen items-center justify-center bg-slate-900 text-white">
-                <img src="179412295382.jpg" alt="Logo" className="h-28 w-28 rounded-3xl animate-bounce mb-6 object-cover" />
-                <h1 className="text-3xl font-black">BiteTracker</h1>
-              </div>
-            );
-          }
+          const handleLogout = async () => {
+            await auth.signOut();
+            await auth.signInAnonymously();
+            onClose();
+          };
 
           return (
-            <div className="flex flex-col h-screen bg-slate-50 font-sans">
-              <header className={`${currentTheme.bg} text-white p-4 shadow-md flex items-center justify-between z-10 shrink-0`}>
-                <div className="flex items-center gap-3">
-                  <img src="179412295382.jpg" alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-bold">{t('appTitle')}</h1>
-                    {isPro && <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow"><Sparkles className="h-3 w-3" /> PRO</span>}
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[2000]">
+              <div className="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 relative shadow-2xl">
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 bg-slate-100 p-1.5 rounded-full"><X className="h-5 w-5" /></button>
+                
+                {user && !user.isAnonymous ? (
+                  <div className="space-y-4 text-center py-4">
+                    <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✨</div>
+                    <h3 className="text-xl font-bold text-slate-800">Du är PRO-medlem!</h3>
+                    <p className="text-xs text-slate-500">Inloggad som: <b>{user.email}</b></p>
+                    <button onClick={handleLogout} className="w-full bg-slate-100 text-red-600 font-bold p-3 rounded-xl text-sm">Logga ut</button>
                   </div>
-                </div>
-                <button onClick={() => setShowAuthModal(true)} className="flex items-center gap-1.5 text-white/90 py-1 px-3 bg-black/20 rounded-xl text-xs font-bold">
-                  <User className="h-4 w-4" /> {user?.isAnonymous ? 'Logga In för PRO' : (profile.displayName || user?.email || t('loggedIn'))}
-                </button>
-              </header>
+                ) : (
+                  <form onSubmit={(e) => { e.preventDefault(); handleEmailAuth(email, password, isSignUp); }} className="space-y-3">
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-1.5"><Sparkles className="h-5 w-5 text-amber-500" /> {isSignUp ? 'Skapa PRO-konto' : 'Logga in för PRO'}</h3>
+                    <p className="text-xs text-slate-500">Få tillgång till privata kartmarkeringar och exklusiva funktioner direkt.</p>
+                    
+                    {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold">{error}</div>}
+                    
+                    <button 
+                      type="button" 
+                      onClick={handleGoogleLogin} 
+                      className="w-full bg-white border border-slate-300 text-slate-700 font-bold p-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
+                    >
+                      🌐 Logga in med Google
+                    </button>
 
-              <main className="flex-1 overflow-y-auto pb-20">
-                {activeTab === 'feed' && <FeedView globalFeed={globalFeed} user={user} t={t} currentTheme={currentTheme} isPro={isPro} setShowAuthModal={setShowAuthModal} />}
-                {activeTab === 'compete' && <CompetitionView globalFeed={globalFeed} t={t} currentTheme={currentTheme} />}
-                {activeTab === 'ai' && <AIChatView t={t} currentTheme={currentTheme} lures={lures} catches={catches} />}
-                {activeTab === 'map' && <MapView user={user} currentTheme={currentTheme} isPro={isPro} />}
-                {activeTab === 'log' && <CatchLogView user={user} t={t} currentTheme={currentTheme} profile={profile} />}
-                {activeTab === 'box' && <TackleBoxView user={user} lures={lures} t={t} currentTheme={currentTheme} />}
-                {activeTab === 'settings' && <SettingsView user={user} profile={profile} t={t} appTheme={appTheme} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} currentTheme={currentTheme} isPro={isPro} />}
-              </main>
+                    <div className="relative flex py-2 items-center">
+                      <div className="flex-grow border-t border-slate-200"></div>
+                      <span className="flex-shrink mx-4 text-slate-400 text-xs">eller med e-post</span>
+                      <div className="flex-grow border-t border-slate-200"></div>
+                    </div>
 
-              <nav className="fixed bottom-0 w-full bg-white border-t border-slate-200 z-20 shadow">
-                <div className="flex justify-around items-center p-2 overflow-x-auto no-scrollbar">
-                  <NavItem Icon={Compass} label={t('nav_feed')} isActive={activeTab === 'feed'} onClick={() => setActiveTab('feed')} currentTheme={currentTheme} />
-                  <NavItem Icon={Trophy} label={t('nav_compete')} isActive={activeTab === 'compete'} onClick={() => setActiveTab('compete')} currentTheme={currentTheme} />
-                  <NavItem Icon={Bot} label={t('nav_ai')} isActive={activeTab === 'ai'} onClick={() => setActiveTab('ai')} currentTheme={currentTheme} />
-                  <NavItem Icon={MapIcon} label={t('nav_map')} isActive={activeTab === 'map'} onClick={() => setActiveTab('map')} currentTheme={currentTheme} />
-                  <NavItem Icon={Fish} label={t('nav_log')} isActive={activeTab === 'log'} onClick={() => setActiveTab('log')} currentTheme={currentTheme} />
-                  <NavItem Icon={Package} label={t('nav_box')} isActive={activeTab === 'box'} onClick={() => setActiveTab('box')} currentTheme={currentTheme} />
-                  <NavItem Icon={Settings} label={t('nav_settings')} isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} currentTheme={currentTheme} />
-                </div>
-              </nav>
+                    <input type="email" placeholder="E-postadress" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
+                    <input type="password" placeholder="Lösenord (minst 6 tecken)" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
+                    
+                    <button type="submit" disabled={loading} className={`w-full ${currentTheme.bg} text-white font-bold p-3.5 rounded-xl shadow text-sm`}>
+                      {loading ? <Loader2 className="animate-spin h-5 w-5 mx-auto" /> : (isSignUp ? 'Skapa konto & Aktivera PRO' : 'Logga in & Aktivera PRO')}
+                    </button>
 
-              {showAuthModal && <AuthModal user={user} onClose={() => setShowAuthModal(false)} t={t} currentTheme={currentTheme} />}
+                    <div className="text-center pt-2">
+                      <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-xs text-blue-600 font-semibold">
+                        {isSignUp ? 'Har du redan ett konto? Logga in här' : 'Inget konto? Skapa ett gratis här'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
           );
         }
 
-        function NavItem({ Icon, label, isActive, onClick, currentTheme }) {
-          return (
-            <button onClick={onClick} className={`flex flex-col items-center justify-center py-1.5 px-3 min-w-[55px] rounded-xl transition ${ isActive ? `${currentTheme.text} ${currentTheme.light} font-bold scale-105` : 'text-slate-400' }`}>
-              <Icon className="h-5 w-5 mb-0.5" /> <span className="text-[9px]">{label}</span>
-            </button>
-          );
-        }
-
-        // Fiske-AI
+        // --- ÖVRIGA KOMPONENTER (AIChatView, FeedView, CompetitionView, MapView, CatchLogView, TackleBoxView, SettingsView) ---
         function AIChatView({ t, currentTheme, lures, catches }) {
           const [messages, setMessages] = useState([
             { sender: 'ai', text: "Hej! Jag är din fiske-AI. Jag analyserar din beteslåda och dina fångster för att ge dig perfekta tips!" }
@@ -358,7 +191,6 @@ useEffect(() => {
           );
         }
 
-        // Flöde
         function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }) {
           const handleLike = async (post) => {
             if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
@@ -428,7 +260,6 @@ useEffect(() => {
           );
         }
 
-        // Tävling
         function CompetitionView({ globalFeed, t, currentTheme }) {
           const sorted = [...globalFeed].sort((a, b) => b.weight - a.weight);
           return (
@@ -456,7 +287,6 @@ useEffect(() => {
           );
         }
 
-        // Karta med sjöregler, förslag och privata bryggor
         function MapView({ user, currentTheme, isPro }) {
           const [leafletLoaded, setLeafletLoaded] = useState(false);
           const mapRef = useRef(null);
@@ -465,7 +295,6 @@ useEffect(() => {
 
           const [approvedLakes, setApprovedLakes] = useState([]);
           const [privateMarkers, setPrivateMarkers] = useState([]);
-          
           const [searchQuery, setSearchQuery] = useState('');
 
           const [showSuggestModal, setShowSuggestModal] = useState(false);
@@ -658,7 +487,6 @@ useEffect(() => {
           );
         }
 
-        // Fångstlogg
         function CatchLogView({ user, t, currentTheme, profile }) {
           const [species, setSpecies] = useState('');
           const [weight, setWeight] = useState('');
@@ -697,7 +525,6 @@ useEffect(() => {
           );
         }
 
-        // Beteslåda
         function TackleBoxView({ user, lures, t, currentTheme }) {
           const [name, setName] = useState(''); const [type, setType] = useState(''); const [color, setColor] = useState('');
           const handleAdd = async (e) => {
@@ -718,7 +545,6 @@ useEffect(() => {
           );
         }
 
-        // Inställningar & Admin-panel
         function SettingsView({ user, profile, t, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro }) {
           const [name, setName] = useState(profile.displayName || '');
           const [showPinModal, setShowPinModal] = useState(false);
@@ -831,90 +657,139 @@ useEffect(() => {
             </div>
           );
         }
-// --- AUTH MODAL KOMPONENT ---
-      function AuthModal({ isOpen, onClose, user, currentTheme }) {
-        const [isSignUp, setIsSignUp] = useState(false);
-        const [email, setEmail] = useState('');
-        const [password, setPassword] = useState('');
-        const [loading, setLoading] = useState(false);
-        const [error, setError] = useState(null);
 
-        if (!isOpen) return null;
+        function NavItem({ Icon, label, isActive, onClick, currentTheme }) {
+          return (
+            <button onClick={onClick} className={`flex flex-col items-center justify-center py-1.5 px-3 min-w-[55px] rounded-xl transition ${ isActive ? `${currentTheme.text} ${currentTheme.light} font-bold scale-105` : 'text-slate-400' }`}>
+              <Icon className="h-5 w-5 mb-0.5" /> <span className="text-[9px]">{label}</span>
+            </button>
+          );
+        }
 
-        const handleLogout = async () => {
-          await auth.signOut();
-          await auth.signInAnonymously();
-          onClose();
-        };
+        // --- HUVUDKOMPONENT ---
+        function FiskeAppen() {
+          const [user, setUser] = useState(null);
+          const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+          const [activeTab, setActiveTab] = useState('feed');
+          const [catches, setCatches] = useState([]);
+          const [globalFeed, setGlobalFeed] = useState([]);
+          const [lures, setLures] = useState([]);
+          const [profile, setProfile] = useState({});
+          const [showAuthModal, setShowAuthModal] = useState(false);
+          const [lang, setLang] = useState('sv');
+          const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
+          const isPro = user && !user.isAnonymous;
 
-        return (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[2000]">
-            <div className="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 relative shadow-2xl">
-              <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 bg-slate-100 p-1.5 rounded-full"><X className="h-5 w-5" /></button>
-              
-              {user && !user.isAnonymous ? (
-                <div className="space-y-4 text-center py-4">
-                  <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✨</div>
-                  <h3 className="text-xl font-bold text-slate-800">Du är PRO-medlem!</h3>
-                  <p className="text-xs text-slate-500">Inloggad som: <b>{user.email}</b></p>
-                  <button onClick={handleLogout} className="w-full bg-slate-100 text-red-600 font-bold p-3 rounded-xl text-sm">Logga ut</button>
-                </div>
-              ) : (
-                <form onSubmit={(e) => { e.preventDefault(); handleEmailAuth(email, password, isSignUp); }} className="space-y-3">
-                  <h3 className="text-xl font-bold text-slate-800 flex items-center gap-1.5"><Sparkles className="h-5 w-5 text-amber-500" /> {isSignUp ? 'Skapa PRO-konto' : 'Logga in för PRO'}</h3>
-                  <p className="text-xs text-slate-500">Få tillgång till privata kartmarkeringar och exklusiva funktioner direkt.</p>
-                  
-                  {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold">{error}</div>}
-                  
-                  {/* Google-inloggningsknapp */}
-                  <button 
-                    type="button" 
-                    onClick={handleGoogleLogin} 
-                    className="w-full bg-white border border-slate-300 text-slate-700 font-bold p-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
-                  >
-                    🌐 Logga in med Google
-                  </button>
+          const t = (key) => translations[lang]?.[key] || key;
+          const currentTheme = themes[appTheme] || themes.blue;
 
-                  <div className="relative flex py-2 items-center">
-                    <div className="flex-grow border-t border-slate-200"></div>
-                    <span className="flex-shrink mx-4 text-slate-400 text-xs">eller med e-post</span>
-                    <div className="flex-grow border-t border-slate-200"></div>
-                  </div>
+          useEffect(() => {
+            const initAuth = async () => { 
+              try { await auth.signInAnonymously(); } catch (error) {} 
+              setIsLoadingAuth(false); 
+            };
+            initAuth();
+            const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
+            return () => unsubscribe();
+          }, []);
 
-                  <input type="email" placeholder="E-postadress" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
-                  <input type="password" placeholder="Lösenord (minst 6 tecken)" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3.5 bg-slate-50 border rounded-xl text-sm outline-none" />
-                  
-                  <button type="submit" disabled={loading} className={`w-full ${currentTheme.bg} text-white font-bold p-3.5 rounded-xl shadow text-sm`}>
-                    {loading ? <Loader2 className="animate-spin h-5 w-5 mx-auto" /> : (isSignUp ? 'Skapa konto & Aktivera PRO' : 'Logga in & Aktivera PRO')}
-                  </button>
+          useEffect(() => {
+            if (!user) return;
+            
+            const catchesRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches');
+            const unsubC = catchesRef.onSnapshot((snap) => { 
+              const f = []; 
+              snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+              f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+              setCatches(f); 
+            });
+            
+            const globalRef = db.collection('artifacts').doc(appId).collection('public_feed');
+            const unsubG = globalRef.onSnapshot((snap) => { 
+              const f = []; 
+              snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+              f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+              setGlobalFeed(f); 
+            });
+            
+            const luresRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures');
+            const unsubL = luresRef.onSnapshot((snap) => { 
+              const f = []; 
+              snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+              f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+              setLures(f); 
+            });
 
-                  <div className="text-center pt-2">
-                    <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-xs text-blue-600 font-semibold">
-                      {isSignUp ? 'Har du redan ett konto? Logga in här' : 'Inget konto? Skapa ett gratis här'}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </div>
-        );
-      }
+            const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
+            const unsubP = profileRef.onSnapshot((docSnap) => { 
+              if (docSnap.exists) setProfile(docSnap.data()); 
+            });
 
-      // Starta appen säkert med en krasch-spärr
-      try {
-          const rootElement = document.getElementById('root');
-          if (rootElement) {
-              createRoot(rootElement).render(<FiskeAppen />);
+            return () => { unsubC(); unsubG(); unsubL(); unsubP(); };
+          }, [user]);
+
+          if (isLoadingAuth) {
+            return (
+              <div className="flex flex-col h-screen items-center justify-center bg-slate-900 text-white">
+                <img src="179412295382.jpg" alt="Logo" className="h-28 w-28 rounded-3xl animate-bounce mb-6 object-cover" />
+                <h1 className="text-3xl font-black">BiteTracker</h1>
+              </div>
+            );
           }
-      } catch (err) {
-          console.error("Kunde inte starta appen:", err);
-      }
-      
-      // Tvinga bort laddningsskärmen omedelbart när appen startar
-      const loader = document.getElementById('loading-screen');
-      if (loader) loader.remove();
+
+          return (
+            <div className="flex flex-col h-screen bg-slate-50 font-sans">
+              <header className={`${currentTheme.bg} text-white p-4 shadow-md flex items-center justify-between z-10 shrink-0`}>
+                <div className="flex items-center gap-3">
+                  <img src="179412295382.jpg" alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-bold">{t('appTitle')}</h1>
+                    {isPro && <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow"><Sparkles className="h-3 w-3" /> PRO</span>}
+                  </div>
+                </div>
+                <button onClick={() => setShowAuthModal(true)} className="flex items-center gap-1.5 text-white/90 py-1 px-3 bg-black/20 rounded-xl text-xs font-bold">
+                  <User className="h-4 w-4" /> {user?.isAnonymous ? 'Logga In för PRO' : (profile.displayName || user?.email || t('loggedIn'))}
+                </button>
+              </header>
+
+              <main className="flex-1 overflow-y-auto pb-20">
+                {activeTab === 'feed' && <FeedView globalFeed={globalFeed} user={user} t={t} currentTheme={currentTheme} isPro={isPro} setShowAuthModal={setShowAuthModal} />}
+                {activeTab === 'compete' && <CompetitionView globalFeed={globalFeed} t={t} currentTheme={currentTheme} />}
+                {activeTab === 'ai' && <AIChatView t={t} currentTheme={currentTheme} lures={lures} catches={catches} />}
+                {activeTab === 'map' && <MapView user={user} currentTheme={currentTheme} isPro={isPro} />}
+                {activeTab === 'log' && <CatchLogView user={user} t={t} currentTheme={currentTheme} profile={profile} />}
+                {activeTab === 'box' && <TackleBoxView user={user} lures={lures} t={t} currentTheme={currentTheme} />}
+                {activeTab === 'settings' && <SettingsView user={user} profile={profile} t={t} appTheme={appTheme} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} currentTheme={currentTheme} isPro={isPro} />}
+              </main>
+
+              <nav className="fixed bottom-0 w-full bg-white border-t border-slate-200 z-20 shadow">
+                <div className="flex justify-around items-center p-2 overflow-x-auto no-scrollbar">
+                  <NavItem Icon={Compass} label={t('nav_feed')} isActive={activeTab === 'feed'} onClick={() => setActiveTab('feed')} currentTheme={currentTheme} />
+                  <NavItem Icon={Trophy} label={t('nav_compete')} isActive={activeTab === 'compete'} onClick={() => setActiveTab('compete')} currentTheme={currentTheme} />
+                  <NavItem Icon={Bot} label={t('nav_ai')} isActive={activeTab === 'ai'} onClick={() => setActiveTab('ai')} currentTheme={currentTheme} />
+                  <NavItem Icon={MapIcon} label={t('nav_map')} isActive={activeTab === 'map'} onClick={() => setActiveTab('map')} currentTheme={currentTheme} />
+                  <NavItem Icon={Fish} label={t('nav_log')} isActive={activeTab === 'log'} onClick={() => setActiveTab('log')} currentTheme={currentTheme} />
+                  <NavItem Icon={Package} label={t('nav_box')} isActive={activeTab === 'box'} onClick={() => setActiveTab('box')} currentTheme={currentTheme} />
+                  <NavItem Icon={Settings} label={t('nav_settings')} isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} currentTheme={currentTheme} />
+                </div>
+              </nav>
+
+              <AuthModal isOpen={showAuthModal} user={user} onClose={() => setShowAuthModal(false)} t={t} currentTheme={currentTheme} />
+            </div>
+          );
+        }
+
+        // Starta appen säkert med en krasch-spärr
+        try {
+            const rootElement = document.getElementById('root');
+            if (rootElement) {
+                createRoot(rootElement).render(<FiskeAppen />);
+            }
+        } catch (err) {
+            console.error("Kunde inte starta appen:", err);
+        }
+        
+        // Tvinga bort laddningsskärmen omedelbart när appen startar
+        const loader = document.getElementById('loading-screen');
+        if (loader) loader.remove();
     </script>
-</body>
-</html>
-
-
