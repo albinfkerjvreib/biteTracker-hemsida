@@ -122,21 +122,40 @@ useEffect(() => {
   const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
   return () => unsubscribe();
 }, []);
-          useEffect(() => {
-            if (!user) return;
-            const catchesRef = collection(db, 'artifacts', appId, 'users', user.uid, 'catches');
-            const unsubC = onSnapshot(query(catchesRef), (snap) => { const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); setCatches(f); });
-            const globalRef = collection(db, 'artifacts', appId, 'public_feed');
-            const unsubG = onSnapshot(query(globalRef), (snap) => { const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); setGlobalFeed(f); });
-            const luresRef = collection(db, 'artifacts', appId, 'users', user.uid, 'lures');
-            const unsubL = onSnapshot(query(luresRef), (snap) => { const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); setLures(f); });
+         useEffect(() => {
+  if (!user) return;
+  
+  const catchesRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches');
+  const unsubC = catchesRef.onSnapshot((snap) => { 
+    const f = []; 
+    snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+    f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+    setCatches(f); 
+  });
+  
+  const globalRef = db.collection('artifacts').doc(appId).collection('public_feed');
+  const unsubG = globalRef.onSnapshot((snap) => { 
+    const f = []; 
+    snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+    f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+    setGlobalFeed(f); 
+  });
+  
+  const luresRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures');
+  const unsubL = luresRef.onSnapshot((snap) => { 
+    const f = []; 
+    snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
+    f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
+    setLures(f); 
+  });
 
-            const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-            const unsubP = onSnapshot(profileRef, (docSnap) => { if (docSnap.exists()) setProfile(docSnap.data()); });
+  const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
+  const unsubP = profileRef.onSnapshot((docSnap) => { 
+    if (docSnap.exists) setProfile(docSnap.data()); 
+  });
 
-            return () => { unsubC(); unsubG(); unsubL(); unsubP(); };
-          }, [user]);
-
+  return () => { unsubC(); unsubG(); unsubL(); unsubP(); };
+}, [user]);
           if (isLoadingAuth) {
             return (
               <div className="flex flex-col h-screen items-center justify-center bg-slate-900 text-white">
