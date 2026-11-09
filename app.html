@@ -113,13 +113,15 @@
           const t = (key) => translations[lang]?.[key] || key;
           const currentTheme = themes[appTheme] || themes.blue;
 
-          useEffect(() => {
-            const initAuth = async () => { try { await signInAnonymously(auth); } catch (error) {} setIsLoadingAuth(false); };
-            initAuth();
-            const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
-return () => unsubscribe();
-          }, []);
-
+useEffect(() => {
+  const initAuth = async () => { 
+    try { await auth.signInAnonymously(); } catch (error) {} 
+    setIsLoadingAuth(false); 
+  };
+  initAuth();
+  const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
+  return () => unsubscribe();
+}, []);
           useEffect(() => {
             if (!user) return;
             const catchesRef = collection(db, 'artifacts', appId, 'users', user.uid, 'catches');
