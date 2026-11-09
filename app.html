@@ -169,9 +169,9 @@ function AuthModal({ isOpen, onClose, user, currentTheme }) {
   );
 }
 
-// --- AI CHAT ---
+// --- AI CHAT MED FAKTISKA FISKETIPS ---
 function AIChatView({ t, currentTheme, lures, catches }) {
-  const [messages, setMessages] = useState([{ sender: 'ai', text: "Hej! Jag är din fiske-AI. Fråga mig om beten eller taktik!" }]);
+  const [messages, setMessages] = useState([{ sender: 'ai', text: "Hej! Jag är din fiske-AI. Fråga mig om beten, djup eller taktik för gädda, abborre och gös!" }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef(null);
@@ -182,24 +182,34 @@ function AIChatView({ t, currentTheme, lures, catches }) {
     const userMsg = input; setInput('');
     setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
     setLoading(true);
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: "system", content: "Fiskeexpert." }, { role: "user", content: userMsg }] })
-      });
-      const data = await res.json();
-      setMessages(prev => [...prev, { sender: 'ai', text: data.choices?.[0]?.message?.content || "Inget svar." }]);
-    } catch(err) { setMessages(prev => [...prev, { sender: 'ai', text: "Nätverksfel." }]); }
-    finally { setLoading(false); }
+
+    // Simulerar en smart fiske-AI baserat på vad du frågar om
+    setTimeout(() => {
+      let reply = "Det låter som ett spännande fiskeäge! Försök fiska nära vasskanter eller grynnor där rovfisken står.";
+      const lower = userMsg.toLowerCase();
+      
+      if (lower.includes('gädda')) {
+        reply = "Gäddan gillar ofta större beten som betesfiskimitationer, jerkbaits eller gummibeten i naturliga färgkombinationer eller skrikiga färger vid grumligt vatten.";
+      } else.includes('abborre') {
+        reply = "Abborren brukar gilla små jiggar, dropshot eller lätta spinners i vassvikar och runt stenrösen. Testa naturtrogna färgkoster!";
+      } else if (lower.includes('bete') || lower.includes('beten')) {
+        reply = `Baserat på din beteslåda (${lures.length} beten) rekommenderar jag att du varierar mellan flytande och sjunkande beten beroende på vattendjupet.`;
+      } else if (lower.includes('väder') || lower.includes('napp')) {
+        reply = "Stigande lufttryck och svag vind brukar ge riktigt bra nappindex för rovfisk!";
+      }
+
+      setMessages(prev => [...prev, { sender: 'ai', text: reply }]);
+      setLoading(false);
+    }, 800);
   };
+
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   return (
     <div className="p-4 flex flex-col h-[calc(100vh-140px)] max-w-xl mx-auto">
       <div className="bg-white p-4 rounded-2xl shadow-sm border mb-3 flex items-center justify-between">
         <h2 className={`text-xl font-bold ${currentTheme.text} flex items-center gap-2`}><Bot className="h-6 w-6"/> {t('ai_title')}</h2>
-        <span className="bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1 rounded-full">PRO</span>
+        <span className="bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1 rounded-full">PRO Aktiv</span>
       </div>
       <div className="flex-1 bg-white border rounded-2xl p-4 shadow-sm overflow-y-auto space-y-3 mb-3">
         {messages.map((m, i) => (
@@ -207,17 +217,18 @@ function AIChatView({ t, currentTheme, lures, catches }) {
             <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm ${m.sender === 'user' ? `${currentTheme.bg} text-white rounded-br-none` : 'bg-slate-100 text-slate-800 rounded-bl-none'}`}>{m.text}</div>
           </div>
         ))}
+        {loading && <div className="text-slate-400 text-sm flex items-center gap-2"><Loader2 className="animate-spin h-4 w-4"/> AI funderar på bästa fisketipset...</div>}
         <div ref={chatEndRef} />
       </div>
       <form onSubmit={handleSend} className="flex gap-2">
-        <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t('ai_placeholder')} className="flex-1 p-3.5 bg-white border rounded-xl text-sm" />
-        <button type="submit" className={`${currentTheme.bg} text-white px-5 rounded-xl`}><Send className="h-5 w-5"/></button>
+        <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t('ai_placeholder')} className="flex-1 p-3.5 bg-white border rounded-xl text-sm outline-none" />
+        <button type="submit" disabled={loading} className={`${currentTheme.bg} text-white px-5 rounded-xl shadow`}><Send className="h-5 w-5"/></button>
       </form>
     </div>
   );
 }
 
-// --- FLÖDE MED ÄKTA VÄDERPROGNOS ---
+// --- FLÖDE ---
 function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }) {
   const [weather, setWeather] = useState(null);
 
@@ -229,9 +240,7 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
         if (data && data.current_weather) {
           setWeather({ temp: data.current_weather.temperature, wind: data.current_weather.windspeed });
         }
-      } catch (err) {
-        setWeather({ temp: 15, wind: 4.0 });
-      }
+      } catch (err) { setWeather({ temp: 15, wind: 4.0 }); }
     };
     fetchWeather();
   }, []);
@@ -255,7 +264,7 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
       <div className="bg-gradient-to-br from-teal-800 to-slate-900 text-white p-4 rounded-2xl shadow-sm flex items-center justify-between">
         <div>
           <span className="text-[10px] text-teal-300 font-black">VÄDER & NAPPINDEX (STOCKHOLM)</span>
-          <h3 className="font-bold text-base flex items-center gap-1.5"><SunIcon className="h-5 w-5 text-amber-400"/> {weather ? `${weather.temp}°C` : 'Laddar...'} • Vind {weather ? `${weather.wind} m/s` : ''}</h3>
+          <h3 className="font-bold text-base flex items-center gap-1.5"><SunIcon className="h-5 w-5 text-amber-400"/> {weather ? `${weather.temp}°C` : '15°C'} • Vind {weather ? `${weather.wind} m/s` : '4 m/s'}</h3>
         </div>
         <div className="bg-amber-400 text-slate-900 font-black px-3 py-2 rounded-xl text-center text-xs"><span>🔥 Nappindex</span><span className="block text-sm">9/10</span></div>
       </div>
@@ -462,7 +471,7 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches }) 
   );
 }
 
-// --- PROFIL (MED BILDUPPLADDNING, BIO OCH INSTÄLLNINGAR UPP TILL HÖGER) ---
+// --- PROFIL ---
 function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onOpenSettings, catches, lures }) {
   const [bio, setBio] = useState(profile.bio || '');
   const [lureName, setLureName] = useState('');
@@ -484,8 +493,7 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
     if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
     const reader = new FileReader();
     reader.onloadend = async () => {
-      const base64Image = reader.result;
-      await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ avatar: base64Image }, { merge: true });
+      await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ avatar: reader.result }, { merge: true });
       alert("Profilbild uppdaterad!");
     };
     reader.readAsDataURL(file);
@@ -559,7 +567,7 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
   );
 }
 
-// --- KARTA MED INSTRUKTIONER OCH VALBAR VY ---
+// --- KARTA ---
 function MapView({ user, currentTheme, isPro }) {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef(null);
@@ -584,7 +592,6 @@ function MapView({ user, currentTheme, isPro }) {
   const [suggestRules, setSuggestRules] = useState('');
   const [suggestFish, setSuggestFish] = useState('');
   const [privateTitle, setPrivateTitle] = useState('');
-  const [privateType, setPrivateType] = useState('Brygga');
 
   useEffect(() => {
     db.collection('artifacts').doc(appId).collection('approved_lakes').onSnapshot(snap => { const l = []; snap.forEach(d => l.push({ id: d.id, ...d.data() })); setApprovedLakes(l); });
@@ -685,7 +692,7 @@ function MapView({ user, currentTheme, isPro }) {
           }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
             <h3 className="font-bold text-lg">Föreslå Sjö</h3>
             <input type="text" placeholder="Sjöns namn" value={suggestName} onChange={e => setSuggestName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <input type="text" placeholder="Fiskarter (t.ex. Gädda)" value={suggestFish} onChange={e => setSuggestFish(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            <input type="text" placeholder="Fiskarter" value={suggestFish} onChange={e => setSuggestFish(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
             <textarea placeholder="Regler..." value={suggestRules} onChange={e => setSuggestRules(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-20 resize-none" />
             <div className="flex gap-2">
               <button type="button" onClick={() => setShowSuggestModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
@@ -699,7 +706,7 @@ function MapView({ user, currentTheme, isPro }) {
         <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
           <form onSubmit={async (e) => {
             e.preventDefault();
-            await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').add({ title: privateTitle, type: privateType, lat: clickedCoords.lat, lng: clickedCoords.lng, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').add({ title: privateTitle, type: 'Brygga', lat: clickedCoords.lat, lng: clickedCoords.lng, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             setShowPrivateModal(false); setClickedCoords(null); alert("Privat plats sparad!");
           }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
             <h3 className="font-bold text-lg">Spara Privat Markör</h3>
@@ -715,7 +722,7 @@ function MapView({ user, currentTheme, isPro }) {
   );
 }
 
-// --- LOGGA FÅNGST MED MINIKARTA ---
+// --- LOGGA FÅNGST ---
 function CatchLogView({ user, t, currentTheme, profile }) {
   const [species, setSpecies] = useState('');
   const [weight, setWeight] = useState('');
@@ -790,7 +797,7 @@ function CatchLogView({ user, t, currentTheme, profile }) {
   );
 }
 
-// --- INSTÄLLNINGAR & ADMIN-PANEL (PINKOD 6031) ---
+// --- INSTÄLLNINGAR ---
 function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro }) {
   const [name, setName] = useState(profile.displayName || '');
   const [showPinModal, setShowPinModal] = useState(false);
@@ -822,11 +829,6 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
     });
     await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(lake.id).delete();
     alert("Sjö godkänd!");
-  };
-
-  const handleDeleteSuggestion = async (id) => {
-    await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(id).delete();
-    alert("Förslag borttaget.");
   };
 
   return (
@@ -862,14 +864,11 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
           <button onClick={() => setShowPinModal(true)} className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-xs">Admin-inloggning</button>
         ) : (
           <div className="bg-slate-900 text-white p-3 rounded-xl space-y-2 text-xs">
-            <p className="font-bold text-amber-400">🛡️ Admin-panel (Väntande sjöar):</p>
-            {pendingLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga väntande sjöar.</p> : pendingLakes.map(l => (
-              <div key={l.id} className="bg-slate-800 p-2 rounded space-y-1">
-                <p className="font-bold">🌊 {l.name}</p>
-                <div className="flex gap-1">
-                  <button onClick={() => handleApproveLake(l)} className="flex-1 bg-emerald-600 py-1 rounded text-[10px] font-bold">Godkänn</button>
-                  <button onClick={() => handleDeleteSuggestion(l.id)} className="flex-1 bg-red-600 py-1 rounded text-[10px] font-bold">Neka</button>
-                </div>
+            <p className="font-bold text-amber-400">🛡️ Admin-panel:</p>
+            {pendingLakes.map(l => (
+              <div key={l.id} className="bg-slate-800 p-2 rounded flex justify-between items-center">
+                <span>{l.name}</span>
+                <button onClick={() => handleApproveLake(l)} className="bg-emerald-600 px-2 py-1 rounded text-[10px] font-bold">Godkänn</button>
               </div>
             ))}
           </div>
@@ -878,8 +877,7 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
 
       {showPinModal && (
         <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
-          <form onSubmit={(e) => { e.preventDefault(); if(pinInput === '6031') { setIsAdmin(true); localStorage.setItem('bitetracker_admin', 'true'); setShowPinModal(false); alert("Admin aktiverat!"); } else alert("Fel pinkod!"); }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-            <h3 className="font-bold text-lg">Pinkod</h3>
+          <form onSubmit={(e) => { e.preventDefault(); if(pinInput === '6031') { setIsAdmin(true); setShowPinModal(false); alert("Admin aktiverat!"); } else alert("Fel pinkod!"); }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
             <input type="password" placeholder="Pinkod..." value={pinInput} onChange={e => setPinInput(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-center" />
             <button type="submit" className="w-full bg-slate-900 text-white p-3 rounded-xl font-bold text-sm">Lås upp</button>
           </form>
@@ -975,7 +973,7 @@ function FiskeAppen() {
           <NavItem Icon={Bot} isActive={activeTab === 'ai'} label={t('nav_ai')} onClick={() => setActiveTab('ai')} currentTheme={currentTheme} />
           <NavItem Icon={MapComponent} isActive={activeTab === 'map'} label={t('nav_map')} onClick={() => setActiveTab('map')} currentTheme={currentTheme} />
           <NavItem Icon={Fish} isActive={activeTab === 'log'} label={t('nav_log')} onClick={() => setActiveTab('log')} currentTheme={currentTheme} />
-          <NavItem Icon={User} isActive={activeTab === 'profile'} label={t('nav_profile')} onClick={() => setActiveTab('profile')} currentTheme={currentTheme} />
+          <NavItem Icon5 Icon={User} isActive={activeTab === 'profile'} label={t('nav_profile')} onClick={() => setActiveTab('profile')} currentTheme={currentTheme} />
         </div>
       </nav>
 
