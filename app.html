@@ -21,6 +21,10 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
+    <!-- Leaflet Karta CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -69,6 +73,7 @@ const Send = (props) => <span {...props}>📤</span>;
 const X = (props) => <span {...props}>✕</span>;
 const UsersIcon = (props) => <span {...props}>👥</span>;
 const SunIcon = (props) => <span {...props}>☀️</span>;
+const FilterIcon = (props) => <span {...props}>🎯</span>;
 
 const firebaseConfig = {
   apiKey: "AIzaSyBe5L_7VjdC8G23_G7aBgvjnQoJ_cQOjOw",
@@ -82,11 +87,7 @@ const firebaseConfig = {
 
 const app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
 const auth = firebase.auth();
-
-// Sätt persistent inloggning (så man är inloggad på enheten tills man loggar ut)
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
-  console.error("Kunde inte sätta inloggningspersistens:", err);
-});
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => console.error(err));
 
 const db = firebase.firestore();
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -110,7 +111,6 @@ const handleGoogleLogin = async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     await auth.signInWithRedirect(provider);
   } catch (err) {
-    console.error("Google-inloggning misslyckades:", err);
     alert("Kunde inte logga in med Google: " + err.message);
   }
 };
@@ -123,7 +123,6 @@ const handleEmailAuth = async (email, password, isSignUp) => {
       await auth.signInWithEmailAndPassword(email, password);
     }
   } catch (err) {
-    console.error("E-postinloggning misslyckades:", err);
     alert("Ett fel uppstod: " + err.message);
   }
 };
@@ -177,11 +176,7 @@ function AuthModal({ isOpen, onClose, user, currentTheme }) {
             <h3 className="text-xl font-bold text-slate-800 flex items-center gap-1.5"><Sparkles className="h-5 w-5 text-amber-500"/> {isSignUp ? 'Skapa PRO-konto' : 'Logga in för PRO'}</h3>
             <p className="text-xs text-slate-500">Få tillgång till molnlagring, vänner och privata markeringar.</p>
             
-            <button 
-              type="button" 
-              onClick={handleGoogleLogin} 
-              className="w-full bg-white border border-slate-300 text-slate-700 font-bold p-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
-            >
+            <button type="button" onClick={handleGoogleLogin} className="w-full bg-white border border-slate-300 text-slate-700 font-bold p-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 hover:bg-slate-50">
               🌐 Logga in med Google
             </button>
 
@@ -277,31 +272,20 @@ function AIChatView({ t, currentTheme, lures, catches }) {
   );
 }
 
-// --- FLÖDE MED SMHI VÄDER ---
+// --- FLÖDE ---
 function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }) {
   const [weather, setWeather] = useState(null);
-  const [weatherError, setWeatherError] = useState(false);
 
   useEffect(() => {
     const fetchWeather = async () => {
       try {
         const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current_weather=true&daily=temperature_2m_max&timezone=Europe%2FBerlin');
-        if (!res.ok) throw new Error("Väder API misslyckades");
         const data = await res.json();
         if (data && data.current_weather) {
-            setWeather({
-              temp: data.current_weather.temperature,
-              wind: data.current_weather.windspeed,
-              pressure: 1012,
-              forecasts: data.daily ? data.daily.time.slice(0,7).map((time, index) => ({
-                validTime: time,
-                parameters: [{ name: 't', values: [data.daily.temperature_2m_max[index]] }]
-              })) : []
-            });
+            setWeather({ temp: data.current_weather.temperature, wind: data.current_weather.windspeed, pressure: 1012 });
         }
       } catch (err) {
-        setWeatherError(true);
-        setWeather({ temp: 15, wind: 4.2, pressure: 1015, forecasts: [] });
+        setWeather({ temp: 15, wind: 4.2, pressure: 1015 });
       }
     };
     fetchWeather();
@@ -327,41 +311,15 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
         </div>
       )}
 
-      <div className="bg-gradient-to-br from-teal-800 to-slate-900 text-white p-4 rounded-2xl shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-[10px] text-teal-300 uppercase tracking-widest font-black">Väder & Prognos</span>
-            <h3 className="font-bold text-base flex items-center gap-1.5">
-                <SunIcon className="h-5 w-5 text-amber-400"/> 
-                {weather ? `${weather.temp}°C` : 'Laddar...'} • Vind {weather ? `${weather.wind} m/s` : ''}
-            </h3>
-            <p className="text-xs text-slate-300 mt-0.5">Lufttryck: {weather ? `${weather.pressure} hPa` : 'Laddar...'}</p>
-            {weatherError && <p className="text-[9px] text-red-300 mt-1">Visar standardprognos (Offline)</p>}
-          </div>
-          <div className="bg-amber-400 text-slate-900 font-black px-3 py-2 rounded-xl text-center text-xs shadow">
-            <span>🔥 Nappindex</span>
-            <span className="block text-sm">8/10</span>
-          </div>
+      <div className="bg-gradient-to-br from-teal-800 to-slate-900 text-white p-4 rounded-2xl shadow-sm flex items-center justify-between">
+        <div>
+          <span className="text-[10px] text-teal-300 uppercase tracking-widest font-black">Väder & Prognos</span>
+          <h3 className="font-bold text-base flex items-center gap-1.5"><SunIcon className="h-5 w-5 text-amber-400"/> {weather ? `${weather.temp}°C` : '15°C'} • Vind {weather ? `${weather.wind} m/s` : '4 m/s'}</h3>
         </div>
-
-        {isPro && weather && weather.forecasts && weather.forecasts.length > 0 && (
-          <div className="border-t border-teal-700/50 pt-2">
-            <p className="text-[10px] font-bold text-teal-300 mb-1 uppercase">7-dagars PRO Prognos</p>
-            <div className="grid grid-cols-7 gap-1 text-center">
-              {weather.forecasts.map((f, idx) => {
-                const tVal = f.parameters.find(p => p.name === 't')?.values[0];
-                const dateObj = new Date(f.validTime);
-                const dayStr = dateObj.toLocaleDateString('sv-SE', { weekday: 'short' });
-                return (
-                  <div key={idx} className="bg-teal-900/60 p-1.5 rounded-lg text-[10px]">
-                    <span className="block font-bold text-teal-200">{dayStr}</span>
-                    <span className="block text-amber-300">{tVal !== undefined ? `${Math.round(tVal)}°` : ''}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <div className="bg-amber-400 text-slate-900 font-black px-3 py-2 rounded-xl text-center text-xs shadow">
+          <span>🔥 Nappindex</span>
+          <span className="block text-sm">8/10</span>
+        </div>
       </div>
 
       <div className="bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-between">
@@ -386,7 +344,10 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs">{post.authorName?.charAt(0) || 'F'}</div>
                     <div>
-                      <span className="font-bold text-sm block">{post.authorName || 'Fiskare'}</span>
+                      <span className="font-bold text-sm block flex items-center gap-1">
+                        {post.authorName || 'Fiskare'}
+                        {post.isOG && <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-1.5 py-0.2 rounded-full">🏆 OG</span>}
+                      </span>
                       <span className="text-[10px] text-slate-400">{post.location || 'Sverige'}</span>
                     </div>
                   </div>
@@ -396,11 +357,9 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal }
                 <div className="p-4 space-y-2">
                   <p className="text-sm font-semibold">⚖️ {post.weight} kg {post.length ? `• 📏 ${post.length} cm` : ''} {post.lure ? `• 🎣 ${post.lure}` : ''}</p>
                   {post.description && <p className="text-xs text-slate-600">"{post.description}"</p>}
-                  <div className="pt-2 flex items-center gap-4">
-                    <button onClick={() => handleLike(post)} className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl ${hasLiked ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'}`}>
-                      <Heart className={`h-4 w-4 ${hasLiked ? 'fill-red-500 text-red-500' : ''}`}/> {likesCount}
-                    </button>
-                  </div>
+                  <button onClick={() => handleLike(post)} className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl ${hasLiked ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'}`}>
+                    <Heart className={`h-4 w-4 ${hasLiked ? 'fill-red-500 text-red-500' : ''}`}/> {likesCount}
+                  </button>
                 </div>
               </div>
             );
@@ -433,19 +392,14 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro }) {
     if (!compTitle) return;
     try {
         await db.collection('artifacts').doc(appId).collection('competitions').add({
-        title: compTitle,
-        target: compTarget,
-        creator: user?.email || 'Fiskare',
+        title: compTitle, target: compTarget, creator: user?.email || 'Fiskare',
         code: Math.random().toString(36).substring(2, 8).toUpperCase(),
         participants: [user?.uid || 'guest'],
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        setShowCreateModal(false);
-        setCompTitle('');
-        alert("Privat tävling skapad! Dela koden med dina kompisar.");
-    } catch(err) {
-        alert("Fel! Kolla att Firestore databas är aktiverad.");
-    }
+        setShowCreateModal(false); setCompTitle('');
+        alert("Privat tävling skapad!");
+    } catch(err) { alert("Fel vid skapande."); }
   };
 
   const handleJoinComp = async (e) => {
@@ -453,19 +407,14 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro }) {
     if (!joinCode) return;
     try {
         const snap = await db.collection('artifacts').doc(appId).collection('competitions').where('code', '==', joinCode.toUpperCase()).get();
-        if (snap.empty) {
-        alert("Hittade ingen tävling med den koden.");
-        } else {
-        const doc = snap.docs[0];
-        await doc.ref.update({
-            participants: firebase.firestore.FieldValue.arrayUnion(user?.uid || 'guest')
-        });
-        alert(`Du har gått med i tävlingen: ${doc.data().title}!`);
-        setJoinCode('');
+        if (snap.empty) alert("Hittade ingen tävling.");
+        else {
+          const doc = snap.docs[0];
+          await doc.ref.update({ participants: firebase.firestore.FieldValue.arrayUnion(user?.uid || 'guest') });
+          alert(`Gick med i: ${doc.data().title}!`);
+          setJoinCode('');
         }
-    } catch(err) {
-        alert("Kunde inte ansluta till databasen.");
-    }
+    } catch(err) { alert("Kunde ej ansluta."); }
   };
 
   const sorted = [...globalFeed].sort((a, b) => b.weight - a.weight);
@@ -475,46 +424,37 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro }) {
       <div className="bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-between">
         <div>
           <h2 className={`text-xl font-bold ${currentTheme.text} flex items-center gap-2`}><Trophy className="h-6 w-6 text-amber-500"/> Tävlingar</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Global topplista eller skapa egen med kompisarna</p>
+          <p className="text-xs text-slate-500">Global topplista eller privat</p>
         </div>
-        <button onClick={() => { if(!isPro){alert("Logga in för att skapa privata tävlingar!"); return;} setShowCreateModal(true); }} className={`${currentTheme.bg} text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow`}>
+        <button onClick={() => { if(!isPro){alert("Logga in för att skapa!"); return;} setShowCreateModal(true); }} className={`${currentTheme.bg} text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow`}>
           + Skapa Privat
         </button>
       </div>
 
       <form onSubmit={handleJoinComp} className="bg-white p-4 rounded-2xl shadow-sm border flex gap-2">
-        <input type="text" placeholder="Skriv in inbjudningskod..." value={joinCode} onChange={e => setJoinCode(e.target.value)} className="flex-1 p-3 bg-slate-50 border rounded-xl text-sm uppercase" />
+        <input type="text" placeholder="Inbjudningskod..." value={joinCode} onChange={e => setJoinCode(e.target.value)} className="flex-1 p-3 bg-slate-50 border rounded-xl text-sm uppercase" />
         <button type="submit" className="bg-amber-600 text-white font-bold px-4 rounded-xl text-xs">Gå med</button>
       </form>
 
       {competitions.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-2">
-          <h3 className="font-bold text-amber-900 text-sm">Privata Vän-Tävlingar</h3>
+          <h3 className="font-bold text-amber-900 text-sm">Privata Tävlingar</h3>
           {competitions.map(c => (
             <div key={c.id} className="bg-white p-3 rounded-xl flex items-center justify-between shadow-sm">
-              <div>
-                <p className="font-bold text-sm text-slate-800">🏆 {c.title}</p>
-                <p className="text-[10px] text-slate-500">Mål: {c.target} • Skapad av {c.creator}</p>
-              </div>
-              <div className="text-right">
-                <span className="block text-[10px] text-slate-400 font-bold uppercase">Inbjudningskod</span>
-                <span className="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-1 rounded-lg">{c.code}</span>
-              </div>
+              <div><p className="font-bold text-sm text-slate-800">🏆 {c.title}</p><p className="text-[10px] text-slate-500">Mål: {c.target}</p></div>
+              <span className="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-1 rounded-lg">{c.code}</span>
             </div>
           ))}
         </div>
       )}
 
       <div className="bg-white rounded-2xl shadow-sm border p-4 space-y-3">
-        <h3 className="font-bold text-sm text-slate-700">Månadens Globala Topplista</h3>
-        {sorted.length === 0 ? <p className="text-xs text-slate-400">Inga tävlingsbidrag ännu.</p> : sorted.slice(0, 5).map((item, index) => (
+        <h3 className="font-bold text-sm text-slate-700">Månadens Topplista</h3>
+        {sorted.length === 0 ? <p className="text-xs text-slate-400">Inga bidrag ännu.</p> : sorted.slice(0, 5).map((item, index) => (
           <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
             <div className="flex items-center gap-3">
               <span className={`font-black text-sm ${index === 0 ? 'text-amber-500 text-lg' : 'text-slate-500'}`}>#{index + 1}</span>
-              <div>
-                <p className="font-bold text-sm">{item.species}</p>
-                <p className="text-[10px] text-slate-400">{item.authorName || 'Fiskare'} • {item.location || 'Sverige'}</p>
-              </div>
+              <div><p className="font-bold text-sm">{item.species}</p><p className="text-[10px] text-slate-400">{item.authorName || 'Fiskare'}</p></div>
             </div>
             <span className="font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg text-sm">{item.weight} kg</span>
           </div>
@@ -525,12 +465,9 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro }) {
         <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
           <form onSubmit={handleCreateComp} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
             <h3 className="font-bold text-lg text-slate-800">Skapa Privat Tävling</h3>
-            <input type="text" placeholder="Tävlingens namn (t.ex. Gängets Gäddfiske)" value={compTitle} onChange={e => setCompTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            <input type="text" placeholder="Tävlingsnamn" value={compTitle} onChange={e => setCompTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
             <select value={compTarget} onChange={e => setCompTarget(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-              <option value="Gädda">Gädda</option>
-              <option value="Abborre">Abborre</option>
-              <option value="Gös">Gös</option>
-              <option value="Alla arter">Alla arter</option>
+              <option value="Gädda">Gädda</option><option value="Abborre">Abborre</option><option value="Gös">Gös</option>
             </select>
             <div className="flex gap-2">
               <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
@@ -543,43 +480,22 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro }) {
   );
 }
 
-// --- PROFIL (MED BESKRIVNING, EGEN BETESLÅDA, FÅNGSTER OCH INSTÄLLNINGAR UPP TILL HÖGER) ---
+// --- PROFIL ---
 function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onOpenSettings, catches, lures }) {
   const [bio, setBio] = useState(profile.bio || '');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [friends, setFriends] = useState([]);
-
-  // Beteslåda-formulär direkt i profilen
   const [lureName, setLureName] = useState('');
   const [lureType, setLureType] = useState('');
   const [lureColor, setLureColor] = useState('');
 
-  useEffect(() => {
-    setBio(profile.bio || '');
-  }, [profile]);
-
-  useEffect(() => {
-    if (!user || user.isAnonymous) return;
-    const ref = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('friends');
-    return ref.onSnapshot(snap => {
-      const list = [];
-      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-      setFriends(list);
-    });
-  }, [user]);
+  useEffect(() => { setBio(profile.bio || ''); }, [profile]);
 
   const handleSaveBio = async (e) => {
     e.preventDefault();
     if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
     try {
-      await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({
-        bio: bio
-      }, { merge: true });
+      await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ bio }, { merge: true });
       alert("Beskrivning sparad!");
-    } catch(err) {
-      alert("Kunde inte spara beskrivning.");
-    }
+    } catch(err) { alert("Kunde inte spara."); }
   };
 
   const handleAvatarChange = async (e) => {
@@ -589,14 +505,9 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
     const reader = new FileReader();
     reader.onloadend = async () => {
       try {
-          const base64Image = reader.result;
-          await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({
-            avatar: base64Image
-          }, { merge: true });
-          alert("Profilbild uppdaterad!");
-      } catch (err) {
-          alert("Fel vid sparande av profilbild.");
-      }
+        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ avatar: reader.result }, { merge: true });
+        alert("Bild uppdaterad!");
+      } catch(err) { alert("Kunde ej spara bild."); }
     };
     reader.readAsDataURL(file);
   };
@@ -607,21 +518,15 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
     if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
     try {
       await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures').add({
-        name: lureName,
-        type: lureType,
-        color: lureColor,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        name: lureName, type: lureType, color: lureColor, createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       setLureName(''); setLureType(''); setLureColor('');
-      alert("✅ Bete tillagt i lådan!");
-    } catch(err) {
-      alert("Kunde inte spara bete.");
-    }
+      alert("✅ Bete tillagt!");
+    } catch(err) { alert("Kunde ej spara bete."); }
   };
 
   return (
     <div className="p-4 space-y-4 max-w-xl mx-auto pb-10">
-      {/* Topp med Inställningsknapp i högra hörnet */}
       <div className="bg-white p-5 rounded-2xl shadow-sm border text-center space-y-3 relative">
         <button onClick={onOpenSettings} className="absolute top-4 right-4 bg-slate-100 hover:bg-slate-200 p-2 rounded-full text-slate-700 shadow-sm transition">
           <Settings className="h-5 w-5"/>
@@ -629,19 +534,21 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
 
         <div className="relative w-24 h-24 mx-auto group pt-2">
           {profile.avatar ? (
-            <img src={profile.avatar} alt="Profilbild" className="w-24 h-24 rounded-full object-cover shadow border-2 border-teal-700" />
+            <img src={profile.avatar} alt="Profil" className="w-24 h-24 rounded-full object-cover shadow border-2 border-teal-700" />
           ) : (
             <div className="w-24 h-24 bg-teal-100 text-teal-800 rounded-full flex items-center justify-center text-3xl font-black shadow border-2 border-teal-700">
               {profile.displayName ? profile.displayName.charAt(0) : '👤'}
             </div>
           )}
           <label className="absolute bottom-0 right-0 bg-teal-700 text-white p-1.5 rounded-full cursor-pointer shadow hover:bg-teal-800 text-xs">
-            📷
-            <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+            📷<input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
           </label>
         </div>
 
-        <h2 className={`text-xl font-bold ${currentTheme.text}`}>{profile.displayName || 'Inloggad Fiskare'}</h2>
+        <h2 className={`text-xl font-bold ${currentTheme.text} flex items-center justify-center gap-1.5`}>
+          {profile.displayName || 'Inloggad Fiskare'}
+          {profile.isOG && <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow">🏆 OG Medlem</span>}
+        </h2>
         <p className="text-xs text-slate-500">{user?.email || (user?.isAnonymous ? 'Gäst-konto' : 'PRO-medlem')}</p>
         
         {isPro ? (
@@ -650,15 +557,13 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
           <button onClick={() => setShowAuthModal(true)} className="bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow">Logga in för PRO</button>
         )}
 
-        {/* Om mig / Beskrivning */}
         <form onSubmit={handleSaveBio} className="pt-2 text-left space-y-2 border-t mt-4">
-          <label className="text-xs font-bold text-slate-700">Om mig / Fiske-beskrivning</label>
-          <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Skriv lite om dig själv och din fiskestil..." className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs outline-none h-16 resize-none" />
+          <label className="text-xs font-bold text-slate-700">Om mig</label>
+          <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Skriv lite om dig själv..." className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs outline-none h-16 resize-none" />
           <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold py-2 rounded-xl text-xs shadow`}>Spara Beskrivning</button>
         </form>
       </div>
 
-      {/* Beteslådan direkt på profilen */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
         <h3 className="font-bold text-sm text-slate-800 flex items-center gap-1.5"><Package className="h-5 w-5 text-teal-700"/> Min Beteslåda ({lures.length})</h3>
         <form onSubmit={handleAddLure} className="space-y-2">
@@ -681,23 +586,14 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
         )}
       </div>
 
-      {/* Dina egna fångster */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
         <h3 className="font-bold text-sm text-slate-800 flex items-center gap-1.5"><Fish className="h-5 w-5 text-teal-700"/> Dina Fångster ({catches.length})</h3>
-        {catches.length === 0 ? (
-          <p className="text-xs text-slate-400">Du har inte loggat några fångster ännu.</p>
-        ) : (
+        {catches.length === 0 ? <p className="text-xs text-slate-400">Inga fångster loggade ännu.</p> : (
           <div className="space-y-2">
             {catches.map(c => (
               <div key={c.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border text-xs">
-                <div>
-                  <p className="font-bold text-slate-800">🐟 {c.species}</p>
-                  <p className="text-[10px] text-slate-500">{c.location} {c.lure ? `• 🎣 ${c.lure}` : ''}</p>
-                </div>
-                <div className="text-right">
-                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">{c.weight} kg</span>
-                  {c.length && <span className="block text-[10px] text-slate-400 mt-0.5">{c.length} cm</span>}
-                </div>
+                <div><p className="font-bold text-slate-800">🐟 {c.species}</p><p className="text-[10px] text-slate-500">{c.location}</p></div>
+                <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">{c.weight} kg</span>
               </div>
             ))}
           </div>
@@ -707,7 +603,7 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
   );
 }
 
-// --- KARTA ---
+// --- KARTA MED FILTER FÖR FÅNGSTER, SJÖAR OCH PRIVATA MARKÖRER ---
 function MapView({ user, currentTheme, isPro }) {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef(null);
@@ -715,38 +611,40 @@ function MapView({ user, currentTheme, isPro }) {
   const markersLayer = useRef(null);
   const tileLayerRef = useRef(null);
 
-  const [mapStyle, setMapStyle] = useState('topo');
   const [approvedLakes, setApprovedLakes] = useState([]);
   const [privateMarkers, setPrivateMarkers] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [globalCatches, setGlobalCatches] = useState([]);
 
+  // Filter-states
+  const [showLakes, setShowLakes] = useState(true);
+  const [showPrivate, setShowPrivate] = useState(true);
+  const [showCatches, setShowCatches] = useState(true);
+
+  const [clickedCoords, setClickedCoords] = useState(null);
   const [showSuggestModal, setShowSuggestModal] = useState(false);
   const [showPrivateModal, setShowPrivateModal] = useState(false);
-  const [clickedCoords, setClickedCoords] = useState(null);
 
   const [suggestName, setSuggestName] = useState('');
   const [suggestRules, setSuggestRules] = useState('');
   const [suggestFish, setSuggestFish] = useState('');
-
   const [privateTitle, setPrivateTitle] = useState('');
   const [privateType, setPrivateType] = useState('Brygga');
 
   useEffect(() => {
-    const ref = db.collection('artifacts').doc(appId).collection('approved_lakes');
-    return ref.onSnapshot(snap => {
-      const list = [];
-      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-      setApprovedLakes(list);
+    // Hämta sjöar
+    db.collection('artifacts').doc(appId).collection('approved_lakes').onSnapshot(snap => {
+      const list = []; snap.forEach(d => list.push({ id: d.id, ...d.data() })); setApprovedLakes(list);
+    });
+    // Hämta globala fångster med koordinater
+    db.collection('artifacts').doc(appId).collection('public_feed').onSnapshot(snap => {
+      const list = []; snap.forEach(d => list.push({ id: d.id, ...d.data() })); setGlobalCatches(list);
     });
   }, []);
 
   useEffect(() => {
     if (!user || user.isAnonymous) return;
-    const ref = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins');
-    return ref.onSnapshot(snap => {
-      const list = [];
-      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-      setPrivateMarkers(list);
+    db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').onSnapshot(snap => {
+      const list = []; snap.forEach(d => list.push({ id: d.id, ...d.data() })); setPrivateMarkers(list);
     });
   }, [user]);
 
@@ -759,132 +657,76 @@ function MapView({ user, currentTheme, isPro }) {
   useEffect(() => {
     if (!leafletLoaded || !mapRef.current || mapInstance.current) return;
     const map = window.L.map(mapRef.current, { zoomControl: false, tap: true }).setView([60.128, 18.643], 5);
-    
-    const url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
-    tileLayerRef.current = window.L.tileLayer(url).addTo(map);
+    tileLayerRef.current = window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}').addTo(map);
     window.L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    map.on('click', (e) => {
-      const { lat, lng } = e.latlng;
-      setClickedCoords({ lat, lng });
-    });
+    map.on('click', (e) => setClickedCoords({ lat: e.latlng.lat, lng: e.latlng.lng }));
     mapInstance.current = map;
     markersLayer.current = window.L.layerGroup().addTo(map);
   }, [leafletLoaded]);
 
-  const changeMapLayer = (style) => {
-    if (!isPro) { alert("Att byta olika kartor (Satellit/Djupkarta) kräver PRO!"); return; }
-    setMapStyle(style);
-    if (!mapInstance.current || !window.L) return;
-    if (tileLayerRef.current) mapInstance.current.removeLayer(tileLayerRef.current);
-
-    let url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
-    if (style === 'satellite') url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-    if (style === 'depth') url = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
-
-    tileLayerRef.current = window.L.tileLayer(url).addTo(mapInstance.current);
-  };
-
+  // Rita ut markörer baserat på aktiva filter
   useEffect(() => {
     if (!mapInstance.current || !markersLayer.current || !window.L) return;
     markersLayer.current.clearLayers();
 
-    const lakeIcon = window.L.divIcon({
-      className: 'custom-div-icon',
-      html: "<div style='background-color:#0d9488; width:18px; height:18px; border-radius:50%; border:2px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.5); text-align:center; font-size:10px;'>🌊</div>",
-      iconSize: [22, 22], iconAnchor: [11, 11]
-    });
+    const lakeIcon = window.L.divIcon({ className: 'custom-icon', html: "<div style='background-color:#0d9488; width:20px; height:20px; border-radius:50%; border:2px solid white; box-shadow:0 0 6px rgba(0,0,0,0.5); text-align:center; font-size:10px;'>🌊</div>", iconSize: [22, 22], iconAnchor: [11, 11] });
+    const privateIcon = window.L.divIcon({ className: 'custom-icon', html: "<div style='background-color:#f59e0b; width:18px; height:18px; border-radius:50%; border:2px solid white; box-shadow:0 0 6px rgba(0,0,0,0.5); text-align:center; font-size:9px;'>⚓</div>", iconSize: [20, 20], iconAnchor: [10, 10] });
+    const catchIcon = window.L.divIcon({ className: 'custom-icon', html: "<div style='background-color:#10b981; width:18px; height:18px; border-radius:50%; border:2px solid white; box-shadow:0 0 6px rgba(0,0,0,0.5); text-align:center; font-size:9px;'>🐟</div>", iconSize: [20, 20], iconAnchor: [10, 10] });
 
-    const privateIcon = window.L.divIcon({
-      className: 'custom-div-icon',
-      html: "<div style='background-color:#f59e0b; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.5); text-align:center; font-size:9px;'>⚓</div>",
-      iconSize: [20, 20], iconAnchor: [10, 10]
-    });
-
-    approvedLakes.forEach(l => {
-      if (l.lat && l.lng) {
-        const m = window.L.marker([l.lat, l.lng], { icon: lakeIcon }).addTo(markersLayer.current);
-        m.bindPopup(`<b>${l.name}</b><br>Fisk: ${l.fish || 'Diverse'}<br>Regler: ${l.rules}`);
-      }
-    });
-
-    if (isPro) {
-      privateMarkers.forEach(p => {
-        if (p.lat && p.lng) {
-          const m = window.L.marker([p.lat, p.lng], { icon: privateIcon }).addTo(markersLayer.current);
-          m.bindPopup(`<b>🔒 [PRO Privat] ${p.title}</b><br>Typ: ${p.type}`);
+    if (showLakes) {
+      approvedLakes.forEach(l => {
+        if (l.lat && l.lng) {
+          window.L.marker([l.lat, l.lng], { icon: lakeIcon }).addTo(markersLayer.current).bindPopup(`<b>🌊 ${l.name}</b><br>Fisk: ${l.fish || 'Diverse'}<br>Regler: ${l.rules}`);
         }
       });
     }
-  }, [approvedLakes, privateMarkers, isPro, leafletLoaded]);
 
-  const handleSearchLake = (e) => {
-    e.preventDefault();
-    const found = approvedLakes.find(l => l.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    if (found && mapInstance.current && found.lat && found.lng) {
-      mapInstance.current.setView([found.lat, found.lng], 12);
-    } else {
-      alert("Hittade ingen godkänd sjö med det namnet.");
+    if (showPrivate && isPro) {
+      privateMarkers.forEach(p => {
+        if (p.lat && p.lng) {
+          window.L.marker([p.lat, p.lng], { icon: privateIcon }).addTo(markersLayer.current).bindPopup(`<b>🔒 [PRO] ${p.title}</b><br>Typ: ${p.type}`);
+        }
+      });
     }
-  };
+
+    if (showCatches) {
+      globalCatches.forEach(c => {
+        if (c.lat && c.lng) {
+          window.L.marker([c.lat, c.lng], { icon: catchIcon }).addTo(markersLayer.current).bindPopup(`<b>🐟 ${c.species} (${c.weight} kg)</b><br>Fiskare: ${c.authorName || 'Fiskare'}`);
+        }
+      });
+    }
+  }, [approvedLakes, privateMarkers, globalCatches, showLakes, showPrivate, showCatches, isPro, leafletLoaded]);
 
   const handleSendSuggestion = async (e) => {
     e.preventDefault();
     if (!suggestName || !clickedCoords) return;
-    try {
-        await db.collection('artifacts').doc(appId).collection('lake_suggestions').add({
-        name: suggestName,
-        rules: suggestRules || 'Inga angivna regler',
-        fish: suggestFish || 'Diverse',
-        lat: clickedCoords.lat,
-        lng: clickedCoords.lng,
-        status: 'pending',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        setShowSuggestModal(false);
-        setSuggestName(''); setSuggestRules(''); setSuggestFish(''); setClickedCoords(null);
-        alert("✅ Sjön har skickats in för granskning!");
-    } catch(err) {
-        alert("Kunde inte skicka in förslag.");
-    }
+    await db.collection('artifacts').doc(appId).collection('lake_suggestions').add({
+      name: suggestName, rules: suggestRules || 'Standard', fish: suggestFish || 'Diverse',
+      lat: clickedCoords.lat, lng: clickedCoords.lng, status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    setShowSuggestModal(false); setSuggestName(''); setClickedCoords(null);
+    alert("✅ Sjön har skickats in för granskning!");
   };
 
   const handleSavePrivate = async (e) => {
     e.preventDefault();
-    if (!isPro) { alert("Du behöver vara inloggad (PRO) för att spara privata markeringar!"); return; }
-    if (!privateTitle || !clickedCoords || !user) return;
-    try {
-        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').add({
-        title: privateTitle,
-        type: privateType,
-        lat: clickedCoords.lat,
-        lng: clickedCoords.lng,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        setShowPrivateModal(false);
-        setPrivateTitle(''); setClickedCoords(null);
-        alert("✅ Privat PRO-plats sparad!");
-    } catch(err) {
-        alert("Kunde inte spara platsen.");
-    }
+    if (!isPro) { alert("Kräver PRO!"); return; }
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').add({
+      title: privateTitle, type: privateType, lat: clickedCoords.lat, lng: clickedCoords.lng, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    setShowPrivateModal(false); setPrivateTitle(''); setClickedCoords(null);
+    alert("✅ Privat plats sparad!");
   };
 
   return (
     <div className="relative w-full h-[calc(100vh-140px)]">
-      <div className="absolute top-4 left-4 right-4 z-[400] max-w-xl mx-auto space-y-2">
-        <form onSubmit={handleSearchLake} className="flex gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-lg border">
-          <input type="text" placeholder="Sök sjö eller regler..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="flex-1 p-2 bg-slate-50 border rounded-xl text-sm outline-none" />
-          <button type="submit" className={`${currentTheme.bg} text-white px-4 rounded-xl font-bold text-xs`}>Sök Sjö</button>
-        </form>
-
-        {isPro && (
-          <div className="flex gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-xl shadow border text-xs">
-            <button onClick={() => changeMapLayer('topo')} className={`flex-1 py-1.5 rounded-lg font-bold ${mapStyle === 'topo' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>Standard</button>
-            <button onClick={() => changeMapLayer('satellite')} className={`flex-1 py-1.5 rounded-lg font-bold ${mapStyle === 'satellite' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>🛰️ Satellit</button>
-            <button onClick={() => changeMapLayer('depth')} className={`flex-1 py-1.5 rounded-lg font-bold ${mapStyle === 'depth' ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>🗺️ Djupkarta</button>
-          </div>
-        )}
+      {/* FILTER-MENY HÖGST UPP PÅ KARTAN */}
+      <div className="absolute top-4 left-4 right-4 z-[400] max-w-xl mx-auto flex gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-lg border text-xs font-bold">
+        <button onClick={() => setShowLakes(!showLakes)} className={`flex-1 py-1.5 rounded-xl border transition ${showLakes ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-600'}`}>🌊 Sjöar</button>
+        <button onClick={() => setShowCatches(!showCatches)} className={`flex-1 py-1.5 rounded-xl border transition ${showCatches ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>🐟 Fångster</button>
+        <button onClick={() => { if(!isPro){alert("Kräver PRO!");return;} setShowPrivate(!showPrivate); }} className={`flex-1 py-1.5 rounded-xl border transition ${showPrivate && isPro ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-600'}`}>⚓ Privata {isPro ? '' : '(PRO)'}</button>
       </div>
 
       <div ref={mapRef} className="w-full h-full" />
@@ -892,16 +734,12 @@ function MapView({ user, currentTheme, isPro }) {
       {clickedCoords && !showSuggestModal && !showPrivateModal && (
         <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border z-[1000] max-w-xl mx-auto space-y-3">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-slate-800 text-sm">📍 Position vald</h3>
+            <h3 className="font-bold text-slate-800 text-sm">📍 Position vald på kartan</h3>
             <button onClick={() => setClickedCoords(null)} className="text-slate-400"><X className="h-5 w-5"/></button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setShowSuggestModal(true)} className="bg-teal-700 text-white font-bold p-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow">
-              <BookOpen className="h-4 w-4"/> Föreslå sjö till karta
-            </button>
-            <button onClick={() => { if (!isPro) { alert("Logga in för att använda privata PRO-markeringar!"); return; } setShowPrivateModal(true); }} className="bg-amber-600 text-white font-bold p-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow">
-              <Anchor className="h-4 w-4"/> {isPro ? 'Lägg till privat brygga' : '🔒 Privat brygga (PRO)'}
-            </button>
+            <button onClick={() => setShowSuggestModal(true)} className="bg-teal-700 text-white font-bold p-3 rounded-xl text-xs shadow">Föreslå sjö</button>
+            <button onClick={() => { if (!isPro) { alert("Kräver PRO!"); return; } setShowPrivateModal(true); }} className="bg-amber-600 text-white font-bold p-3 rounded-xl text-xs shadow">Spara privat (PRO)</button>
           </div>
         </div>
       )}
@@ -909,13 +747,13 @@ function MapView({ user, currentTheme, isPro }) {
       {showSuggestModal && (
         <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
           <form onSubmit={handleSendSuggestion} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-            <h3 className="font-bold text-lg text-slate-800">Föreslå Sjökarta & Regler</h3>
+            <h3 className="font-bold text-lg text-slate-800">Föreslå Sjö</h3>
             <input type="text" placeholder="Sjöns namn" value={suggestName} onChange={e => setSuggestName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <input type="text" placeholder="Fiskarter (t.ex. Gädda, Abborre)" value={suggestFish} onChange={e => setSuggestFish(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <textarea placeholder="Regler & fiskekort info..." value={suggestRules} onChange={e => setSuggestRules(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-24 resize-none" />
+            <input type="text" placeholder="Fiskarter" value={suggestFish} onChange={e => setSuggestFish(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            <textarea placeholder="Regler..." value={suggestRules} onChange={e => setSuggestRules(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-20 resize-none" />
             <div className="flex gap-2">
-              <button type="button" onClick={() => setShowSuggestModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
-              <button type="submit" className="flex-1 bg-teal-700 text-white font-bold p-3 rounded-xl text-sm">Skicka in</button>
+              <button type="button" onClick={() => setShowSuggestModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-sm font-bold">Avbryt</button>
+              <button type="submit" className="flex-1 bg-teal-700 text-white p-3 rounded-xl text-sm font-bold">Skicka</button>
             </div>
           </form>
         </div>
@@ -924,16 +762,14 @@ function MapView({ user, currentTheme, isPro }) {
       {showPrivateModal && (
         <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
           <form onSubmit={handleSavePrivate} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-            <h3 className="font-bold text-lg text-slate-800">Lägg till privat PRO-markering</h3>
-            <input type="text" placeholder="Titel (t.ex. Min båtbrygga)" value={privateTitle} onChange={e => setPrivateTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            <h3 className="font-bold text-lg text-slate-800">Spara Privat Markör</h3>
+            <input type="text" placeholder="Titel (t.ex. Bryggan)" value={privateTitle} onChange={e => setPrivateTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
             <select value={privateType} onChange={e => setPrivateType(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-              <option value="Brygga">Båtbrygga</option>
-              <option value="Hemlig spot">Hemlig fiskeplats</option>
-              <option value="Sjöramp">Sjöramp / Sjösättning</option>
+              <option value="Brygga">Brygga</option><option value="Hemlig spot">Hemlig spot</option><option value="Sjöramp">Sjöramp</option>
             </select>
             <div className="flex gap-2">
-              <button type="button" onClick={() => setShowPrivateModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
-              <button type="submit" className="flex-1 bg-amber-600 text-white font-bold p-3 rounded-xl text-sm">Spara Privat</button>
+              <button type="button" onClick={() => setShowPrivateModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-sm font-bold">Avbryt</button>
+              <button type="submit" className="flex-1 bg-amber-600 text-white p-3 rounded-xl text-sm font-bold">Spara</button>
             </div>
           </form>
         </div>
@@ -942,7 +778,7 @@ function MapView({ user, currentTheme, isPro }) {
   );
 }
 
-// --- LOGGA FÅNGST ---
+// --- LOGGA FÅNGST (MED GEOLOKALISERING FÖR KARTAN) ---
 function CatchLogView({ user, t, currentTheme, profile }) {
   const [species, setSpecies] = useState('');
   const [weight, setWeight] = useState('');
@@ -951,7 +787,18 @@ function CatchLogView({ user, t, currentTheme, profile }) {
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [location, setLocation] = useState('');
+  const [coords, setCoords] = useState(null);
   const [sharePublic, setSharePublic] = useState(true);
+
+  // Hämta GPS-position automatiskt om tillåtet
+  const handleGetGPS = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        alert("📍 GPS-position hämtad för fångsten!");
+      }, () => alert("Kunde inte hämta position."));
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -959,77 +806,65 @@ function CatchLogView({ user, t, currentTheme, profile }) {
     
     try {
         const data = {
-        species,
-        weight: parseFloat(weight),
-        length: length ? parseFloat(length) : null,
-        lure,
-        description,
-        image,
-        location,
-        authorName: profile.displayName || 'Fiskare',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          species, weight: parseFloat(weight), length: length ? parseFloat(length) : null,
+          lure, description, image, location,
+          lat: coords ? coords.lat : 59.3293,
+          lng: coords ? coords.lng : 18.0686,
+          authorName: profile.displayName || 'Fiskare',
+          isOG: profile.isOG || false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').add(data);
         if (sharePublic) {
-        await db.collection('artifacts').doc(appId).collection('public_feed').add(data);
+          await db.collection('artifacts').doc(appId).collection('public_feed').add(data);
         }
 
-        setSpecies(''); setWeight(''); setLength(''); setLure(''); setDescription(''); setImage(null); setLocation('');
-        alert("✅ Fångsten sparad!");
-    } catch(err) {
-        alert("Ett fel uppstod vid sparande.");
-    }
+        setSpecies(''); setWeight(''); setLength(''); setLure(''); setDescription(''); setImage(null); setLocation(''); setCoords(null);
+        alert("✅ Fångst sparad!");
+    } catch(err) { alert("Fel vid sparande."); }
   };
 
   return (
     <div className="p-4 max-w-xl mx-auto space-y-4">
       <div className="bg-white p-4 rounded-2xl shadow-sm border"><h2 className={`text-xl font-bold ${currentTheme.text}`}>Logga Fångst</h2></div>
       <form onSubmit={handleSave} className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
-        <input type="text" placeholder="Fiskart (t.ex. Gädda)" value={species} onChange={e => setSpecies(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
+        <input type="text" placeholder="Fiskart (t.ex. Gädda)" value={species} onChange={e => setSpecies(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
         <div className="grid grid-cols-2 gap-2">
-          <input type="number" step="0.1" placeholder="Vikt (kg)" value={weight} onChange={e => setWeight(e.target.value)} required className="p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
-          <input type="number" placeholder="Längd (cm)" value={length} onChange={e => setLength(e.target.value)} className="p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
+          <input type="number" step="0.1" placeholder="Vikt (kg)" value={weight} onChange={e => setWeight(e.target.value)} required className="p-3 bg-slate-50 border rounded-xl text-sm" />
+          <input type="number" placeholder="Längd (cm)" value={length} onChange={e => setLength(e.target.value)} className="p-3 bg-slate-50 border rounded-xl text-sm" />
         </div>
-        <input type="text" placeholder="Bete / Drag" value={lure} onChange={e => setLure(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
-        <input type="text" placeholder="Plats / Sjö" value={location} onChange={e => setLocation(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none" />
-        <textarea placeholder="Beskrivning..." value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none resize-none h-20" />
-        
-        <div className="space-y-1">
-          <label className="text-xs font-bold text-slate-500">Bifoga foto på fångst:</label>
-          <input type="file" accept="image/*" onChange={e => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onloadend = () => setImage(r.result); r.readAsDataURL(f); }}} className="w-full text-xs" />
+        <input type="text" placeholder="Bete / Drag" value={lure} onChange={e => setLure(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+        <div className="flex gap-2">
+          <input type="text" placeholder="Plats / Sjö" value={location} onChange={e => setLocation(e.target.value)} required className="flex-1 p-3 bg-slate-50 border rounded-xl text-sm" />
+          <button type="button" onClick={handleGetGPS} className="bg-teal-700 text-white px-4 rounded-xl text-xs font-bold">📍 GPS</button>
         </div>
-
+        <textarea placeholder="Beskrivning..." value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-20 resize-none" />
+        <input type="file" accept="image/*" onChange={e => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onloadend = () => setImage(r.result); r.readAsDataURL(f); }}} className="w-full text-xs" />
         <label className="flex items-center gap-2 pt-2 cursor-pointer">
           <input type="checkbox" checked={sharePublic} onChange={e => setSharePublic(e.target.checked)} className="w-4 h-4 rounded text-teal-700" />
-          <span className="text-xs font-bold text-slate-700">Dela fångsten med andra i det globala flödet</span>
+          <span className="text-xs font-bold text-slate-700">Dela i globala flödet & på kartan</span>
         </label>
-
         <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3.5 rounded-xl shadow`}>Spara Fångst</button>
       </form>
     </div>
   );
 }
 
-// --- INSTÄLLNINGAR (MODAL) ---
+// --- INSTÄLLNINGAR MODAL ---
 function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro }) {
   const [name, setName] = useState(profile.displayName || '');
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
-  
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bitetracker_admin') === 'true');
   const [pendingLakes, setPendingLakes] = useState([]);
 
-  useEffect(() => {
-    setName(profile.displayName || '');
-  }, [profile]);
+  useEffect(() => { setName(profile.displayName || ''); }, [profile]);
 
   useEffect(() => {
     if (!isAdmin) return;
-    const ref = db.collection('artifacts').doc(appId).collection('lake_suggestions');
-    return ref.onSnapshot(snap => {
-      const list = [];
-      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+    db.collection('artifacts').doc(appId).collection('lake_suggestions').onSnapshot(snap => {
+      const list = []; snap.forEach(d => list.push({ id: d.id, ...d.data() }));
       setPendingLakes(list.filter(l => l.status === 'pending'));
     });
   }, [isAdmin]);
@@ -1038,42 +873,16 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
 
   const handleSaveName = async (e) => {
     e.preventDefault();
-    try {
-        await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ displayName: name }, { merge: true });
-        alert("Namn sparat!");
-    } catch(err) {
-        alert("Kunde inte spara namn.");
-    }
-  };
-
-  const handleCheckPin = (e) => {
-    e.preventDefault();
-    if (pinInput === '6031') {
-      setIsAdmin(true);
-      localStorage.setItem('bitetracker_admin', 'true');
-      setShowPinModal(false);
-      setPinInput('');
-      alert("Admin-läge aktiverat!");
-    } else {
-      alert("Felaktig pinkod!");
-    }
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').set({ displayName: name }, { merge: true });
+    alert("Namn sparat!");
   };
 
   const handleApproveLake = async (lake) => {
     await db.collection('artifacts').doc(appId).collection('approved_lakes').add({
-      name: lake.name,
-      rules: lake.rules,
-      fish: lake.fish,
-      lat: lake.lat,
-      lng: lake.lng,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      name: lake.name, rules: lake.rules, fish: lake.fish, lat: lake.lat, lng: lake.lng, createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(lake.id).delete();
-    alert("Sjön godkänd och publicerad!");
-  };
-
-  const handleDeleteSuggestion = async (id) => {
-    await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(id).delete();
+    alert("Sjö godkänd!");
   };
 
   return (
@@ -1089,11 +898,11 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
         </form>
 
         <div className="space-y-2 pt-2 border-t">
-          <label className="text-xs font-bold text-slate-700">Välj App-Tema</label>
+          <label className="text-xs font-bold text-slate-700">Välj Tema</label>
           <div className="grid grid-cols-3 gap-2">
-            <button onClick={() => { setAppTheme('blue'); localStorage.setItem('bitetracker_theme', 'blue'); }} className={`p-2.5 rounded-xl font-bold text-white bg-blue-900 text-xs ${appTheme === 'blue' ? 'ring-2 ring-blue-900' : ''}`}>Blå</button>
-            <button onClick={() => { setAppTheme('teal'); localStorage.setItem('bitetracker_theme', 'teal'); }} className={`p-2.5 rounded-xl font-bold text-white bg-teal-700 text-xs ${appTheme === 'teal' ? 'ring-2 ring-teal-700' : ''}`}>Grön</button>
-            <button onClick={() => { setAppTheme('sunset'); localStorage.setItem('bitetracker_theme', 'sunset'); }} className={`p-2.5 rounded-xl font-bold text-white bg-amber-800 text-xs ${appTheme === 'sunset' ? 'ring-2 ring-amber-800' : ''}`}>Solnedgång</button>
+            <button onClick={() => { setAppTheme('blue'); localStorage.setItem('bitetracker_theme', 'blue'); }} className="p-2.5 rounded-xl font-bold text-white bg-blue-900 text-xs">Blå</button>
+            <button onClick={() => { setAppTheme('teal'); localStorage.setItem('bitetracker_theme', 'teal'); }} className="p-2.5 rounded-xl font-bold text-white bg-teal-700 text-xs">Grön</button>
+            <button onClick={() => { setAppTheme('sunset'); localStorage.setItem('bitetracker_theme', 'sunset'); }} className="p-2.5 rounded-xl font-bold text-white bg-amber-800 text-xs">Solnedgång</button>
           </div>
         </div>
 
@@ -1101,22 +910,21 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
           {!isPro ? (
             <button onClick={() => { onClose(); setShowAuthModal(true); }} className="w-full bg-amber-500 text-white font-bold p-3 rounded-xl text-xs shadow">Logga in för PRO</button>
           ) : (
-            <div className="text-center text-xs font-bold text-amber-700 bg-amber-50 p-2.5 rounded-xl">✨ PRO Medlem Aktiv</div>
+            <div className="text-center text-xs font-bold text-amber-700 bg-amber-50 p-2.5 rounded-xl flex items-center justify-center gap-1">
+              {profile.isOG && <span>🏆 OG Medlem • </span>}✨ PRO Aktiv
+            </div>
           )}
         </div>
 
         {!isAdmin ? (
-          <button onClick={() => setShowPinModal(true)} className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-xs">Admin-inloggning</button>
+          <button onClick={() => setShowPinModal(true)} className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-xs">Admin</button>
         ) : (
           <div className="bg-slate-900 text-white p-3 rounded-xl space-y-2 text-xs">
-            <p className="font-bold text-amber-400">🛡️ Admin-panel (Väntande sjöar):</p>
-            {pendingLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga väntande sjöförslag.</p> : pendingLakes.map(l => (
-              <div key={l.id} className="bg-slate-800 p-2 rounded-lg space-y-1 border border-slate-700">
-                <p className="font-bold">🌊 {l.name}</p>
-                <div className="flex gap-1 pt-1">
-                  <button onClick={() => handleApproveLake(l)} className="flex-1 bg-emerald-600 text-white py-1 rounded text-[10px] font-bold">Godkänn</button>
-                  <button onClick={() => handleDeleteSuggestion(l.id)} className="flex-1 bg-red-600 text-white py-1 rounded text-[10px] font-bold">Neka</button>
-                </div>
+            <p className="font-bold text-amber-400">🛡️ Väntande sjöar:</p>
+            {pendingLakes.map(l => (
+              <div key={l.id} className="bg-slate-800 p-2 rounded flex justify-between items-center">
+                <span>{l.name}</span>
+                <button onClick={() => handleApproveLake(l)} className="bg-emerald-600 px-2 py-1 rounded text-[10px] font-bold">Godkänn</button>
               </div>
             ))}
           </div>
@@ -1125,13 +933,9 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
 
       {showPinModal && (
         <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
-          <form onSubmit={handleCheckPin} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-            <h3 className="font-bold text-lg text-slate-800">Slå in Admin-kod</h3>
-            <input type="password" placeholder="Pinkod..." value={pinInput} onChange={e => setPinInput(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm tracking-widest text-center" />
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setShowPinModal(false)} className="flex-1 bg-slate-100 text-slate-700 font-bold p-3 rounded-xl text-sm">Avbryt</button>
-              <button type="submit" className="flex-1 bg-slate-900 text-white font-bold p-3 rounded-xl text-sm">Lås upp</button>
-            </div>
+          <form onSubmit={(e) => { e.preventDefault(); if(pinInput === '6031') {setIsAdmin(true); setShowPinModal(false);} else alert("Fel"); }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
+            <input type="password" placeholder="Pinkod..." value={pinInput} onChange={e => setPinInput(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-center" />
+            <button type="submit" className="w-full bg-slate-900 text-white p-3 rounded-xl font-bold text-sm">Lås upp</button>
           </form>
         </div>
       )}
@@ -1166,61 +970,50 @@ function FiskeAppen() {
   const currentTheme = themes[appTheme] || themes.blue;
 
   useEffect(() => {
-    const initAuth = async () => { 
-      try { await auth.signInAnonymously(); } catch (error) {} 
-      setIsLoadingAuth(false); 
-    };
+    const initAuth = async () => { try { await auth.signInAnonymously(); } catch (e) {} setIsLoadingAuth(false); };
     initAuth();
     const unsubscribe = auth.onAuthStateChanged((currentUser) => { setUser(currentUser); setIsLoadingAuth(false); });
     return () => unsubscribe();
   }, []);
 
+  // AUTOMATISK KONTROLL FÖR DE 21-25 FÖRSTA (OG-BANNER)
   useEffect(() => {
-    if (!user) return;
-    try {
-        const catchesRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches');
-        const unsubC = catchesRef.onSnapshot((snap) => { 
-        const f = []; 
-        snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-        f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-        setCatches(f); 
-        });
+    if (!user || user.isAnonymous) return;
+    const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
+    
+    profileRef.get().then(async doc => {
+      const data = doc.exists ? doc.data() : {};
+      if (data.isOG === undefined) {
+        // Räkna antal registrerade användare
+        const usersSnap = await db.collection('artifacts').doc(appId).collection('users').get();
+        const isOneOfFirst25 = usersSnap.size <= 25;
         
-        const globalRef = db.collection('artifacts').doc(appId).collection('public_feed');
-        const unsubG = globalRef.onSnapshot((snap) => { 
-        const f = []; 
-        snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-        f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-        setGlobalFeed(f); 
-        });
-        
-        const luresRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures');
-        const unsubL = luresRef.onSnapshot((snap) => { 
-        const f = []; 
-        snap.forEach(d => f.push({ id: d.id, ...d.data() })); 
-        f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); 
-        setLures(f); 
-        });
-
-        const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
-        const unsubP = profileRef.onSnapshot((docSnap) => { 
-        if (docSnap.exists) setProfile(docSnap.data()); 
-        });
-
-        return () => { if(unsubC) unsubC(); if(unsubG) unsubG(); if(unsubL) unsubL(); if(unsubP) unsubP(); };
-    } catch(err) {
-        console.log("Databas ej redo yet.", err);
-    }
+        await profileRef.set({ isOG: isOneOfFirst25 }, { merge: true });
+        setProfile(prev => ({ ...prev, isOG: isOneOfFirst25 }));
+      } else {
+        setProfile(data);
+      }
+    });
   }, [user]);
 
-  if (isLoadingAuth) {
-    return (
-      <div className="flex flex-col h-screen items-center justify-center bg-slate-900 text-white">
-        <img src="179412295382.jpg" alt="Logo" className="h-28 w-28 rounded-3xl animate-bounce mb-6 object-cover" />
-        <h1 className="text-3xl font-black">BiteTracker</h1>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!user) return;
+    const unsubC = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').onSnapshot(snap => {
+      const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); setCatches(f);
+    });
+    const unsubG = db.collection('artifacts').doc(appId).collection('public_feed').onSnapshot(snap => {
+      const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); setGlobalFeed(f);
+    });
+    const unsubL = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures').onSnapshot(snap => {
+      const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); f.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); setLures(f);
+    });
+    const unsubP = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').onSnapshot(docSnap => {
+      if (docSnap.exists) setProfile(prev => ({ ...prev, ...docSnap.data() }));
+    });
+    return () => { unsubC(); unsubG(); unsubL(); unsubP(); };
+  }, [user]);
+
+  if (isLoadingAuth) return <div className="flex h-screen items-center justify-center bg-slate-900 text-white"><h1 className="text-2xl font-black">BiteTracker</h1></div>;
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 font-sans">
@@ -1229,11 +1022,11 @@ function FiskeAppen() {
           <img src="179412295382.jpg" alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold">{t('appTitle')}</h1>
-            {isPro && <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow"><Sparkles className="h-3 w-3"/> PRO</span>}
+            {isPro && <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow">PRO</span>}
           </div>
         </div>
         <button onClick={() => setShowAuthModal(true)} className="flex items-center gap-1.5 text-white/90 py-1 px-3 bg-black/20 rounded-xl text-xs font-bold">
-          <User className="h-4 w-4"/> {user?.isAnonymous ? 'Logga In för PRO' : (profile.displayName || user?.email || t('loggedIn'))}
+          <User className="h-4 w-4"/> {user?.isAnonymous ? 'Logga In' : (profile.displayName || user?.email)}
         </button>
       </header>
 
@@ -1246,7 +1039,6 @@ function FiskeAppen() {
         {activeTab === 'profile' && <ProfileView currentTheme={currentTheme} isPro={isPro} profile={profile} setShowAuthModal={setShowAuthModal} user={user} onOpenSettings={() => setShowSettingsModal(true)} catches={catches} lures={lures}/>}
       </main>
 
-      {/* RESTERAD BOTTENMENY UTAN LÅDA OCH INSTÄLLNINGAR */}
       <nav className="fixed bottom-0 w-full bg-white border-t border-slate-200 z-20 shadow">
         <div className="flex justify-around items-center p-1.5">
           <NavItem Icon={Compass} isActive={activeTab === 'feed'} label={t('nav_feed')} onClick={() => setActiveTab('feed')} currentTheme={currentTheme} />
@@ -1267,12 +1059,8 @@ function FiskeAppen() {
 
 try {
     const rootElement = document.getElementById('root');
-    if (rootElement) {
-        createRoot(rootElement).render(<FiskeAppen/>);
-    }
-} catch (err) {
-    console.error("Kunde inte starta appen:", err);
-}
+    if (rootElement) createRoot(rootElement).render(<FiskeAppen/>);
+} catch (err) { console.error(err); }
 
 const loader = document.getElementById('loading-screen');
 if (loader) loader.remove();
