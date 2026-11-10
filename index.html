@@ -6,6 +6,7 @@
     <title>BiteTracker Pro – Spara dina fångster & se andras</title>
     <link rel="icon" type="image/jpeg" href="179412295382.jpg">
     <link rel="apple-touch-icon" href="179412295382.jpg">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -30,8 +31,15 @@
                 <span class="font-black text-lg text-slate-900 tracking-tight">BiteTracker <span class="text-teal-600">Pro</span></span>
             </div>
             
-            <div class="flex items-center gap-4">
-                <a href="#funktioner" class="hidden md:block text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Funktioner</a>
+            <div class="flex items-center gap-3">
+                <a href="#funktioner" class="hidden md:block text-xs font-semibold text-slate-600 hover:text-slate-900 transition mr-2">Funktioner</a>
+                
+                <!-- KNAPP: INSTALLERA APP -->
+                <button type="button" class="install-app-btn bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
+                    <span>📲 Installera</span>
+                </button>
+
+                <!-- KNAPP: ÖPPNA I WEBBLÄSAREN -->
                 <a href="https://bitetrackerwebb.vercel.app/app.html" class="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5">
                     <span>🚀 Öppna Appen</span>
                 </a>
@@ -53,21 +61,22 @@
             </h1>
 
             <p class="text-slate-600 text-base md:text-lg max-w-2xl mx-auto font-medium">
-                Håll koll på dina beten, se svenska väderprognoser med live nappindex och delta i spännande fisketävlingar direkt i webbläsaren.
+                Håll koll på dina beten, se svenska väderprognoser med live nappindex och delta i spännande fisketävlingar direkt i mobilen eller på datorn.
             </p>
 
             <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <a href="https://bitetrackerwebb.vercel.app/app.html" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-teal-700 hover:bg-teal-800 text-white font-black text-sm shadow-lg shadow-teal-700/20 hover:scale-105 active:scale-95 transition text-center">
-                    🚀 Starta BiteTracker i webbläsaren
+                    🚀 Starta i webbläsaren
                 </a>
-                <a href="#funktioner" class="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold text-sm transition text-center">
-                    Utforska funktioner
-                </a>
+                
+                <button type="button" class="install-app-btn w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-md hover:scale-105 active:scale-95 transition text-center flex items-center justify-center gap-2">
+                    <span>📲 Installera Appen</span>
+                </button>
             </div>
         </div>
     </section>
 
-    <!-- SHOWCASE CARDS (LJUST RENT TEMA) -->
+    <!-- SHOWCASE CARDS -->
     <section id="funktioner" class="py-20 max-w-6xl mx-auto px-4 space-y-12">
         <div class="text-center space-y-3">
             <h2 class="text-3xl font-black text-slate-900">Allt du behöver för ett lyckat fiskepass</h2>
@@ -136,7 +145,7 @@
                 </div>
             </div>
 
-            <!-- KORT 2: SE ANDRAS FÅNGSTER (KORREKT GÄDDBILD) -->
+            <!-- KORT 2: SE ANDRAS FÅNGSTER -->
             <div class="clean-card p-6 rounded-3xl space-y-4 transition duration-300 flex flex-col justify-between">
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
@@ -156,7 +165,6 @@
                             <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">gädda</span>
                         </div>
                         <div class="relative h-32 rounded-xl overflow-hidden bg-slate-200 border border-slate-200">
-                            <!-- Korrekt bild på gädda -->
                             <img src="https://images.unsplash.com/photo-1535591273668-578e31182c4f?auto=format&fit=crop&w=600&q=80" alt="Storgädda" class="w-full h-full object-cover">
                         </div>
                         <div class="flex items-center justify-between text-xs pt-1 font-semibold text-slate-700">
@@ -214,56 +222,6 @@
             </div>
 
         </div>
-
-        <!-- EKSTRA FUNKTIONER -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-            
-            <!-- KARTFOKUS -->
-            <div class="clean-card p-6 rounded-3xl flex flex-col md:flex-row items-center gap-6">
-                <div class="w-full md:w-1/2 space-y-3">
-                    <span class="text-xs font-bold text-teal-700 tracking-wider uppercase">🗺️ Kartfunktioner</span>
-                    <h3 class="text-xl font-bold text-slate-900">Sök sjöar & navigera</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        Sök enkelt efter svenska sjöar eller landskap. Växla snabbt mellan Standard karta, Satellitvy och Djupkarta för bästa överblick.
-                    </p>
-                    <a href="https://bitetrackerwebb.vercel.app/app.html" class="inline-block text-xs font-bold text-teal-700 hover:text-teal-800 underline">Öppna kartan i appen →</a>
-                </div>
-                <div class="w-full md:w-1/2 bg-slate-100 rounded-2xl p-3 border border-slate-200 space-y-2">
-                    <div class="bg-white p-1.5 rounded-xl text-slate-800 text-[10px] font-semibold flex justify-between border border-slate-200">
-                        <span>🔍 Sök plats eller sjö...</span>
-                        <span class="bg-teal-700 text-white px-2 py-0.5 rounded font-bold">Sök</span>
-                    </div>
-                    <div class="flex gap-1 text-[9px] font-bold">
-                        <span class="flex-1 text-center bg-white border border-slate-200 text-slate-800 py-1 rounded">🌊 Sjöar</span>
-                        <span class="flex-1 text-center bg-white border border-slate-200 text-slate-800 py-1 rounded">🐟 Fångster</span>
-                        <span class="flex-1 text-center bg-white border border-slate-200 text-slate-800 py-1 rounded">⚓ Privata</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TÄVLINGAR -->
-            <div class="clean-card p-6 rounded-3xl flex flex-col md:flex-row items-center gap-6">
-                <div class="w-full md:w-1/2 space-y-3">
-                    <span class="text-xs font-bold text-amber-700 tracking-wider uppercase">🏆 Kompis-Tävlingar</span>
-                    <h3 class="text-xl font-bold text-slate-900">Tävla om största fisken</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        Skapa privata tävlingar eller gå med med en inbjudningskod. Ranka fångster på vikt eller längd och kåra en vinnare!
-                    </p>
-                    <a href="https://bitetrackerwebb.vercel.app/app.html" class="inline-block text-xs font-bold text-amber-700 hover:text-amber-800 underline">Skapa en tävling nu →</a>
-                </div>
-                <div class="w-full md:w-1/2 bg-slate-50 rounded-2xl p-3 border border-slate-200 text-slate-900 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-xs text-slate-900 flex items-center gap-1">🏆 Tävlingar</span>
-                        <span class="bg-blue-900 text-white text-[9px] font-bold px-2 py-1 rounded-lg">+ Skapa Privat</span>
-                    </div>
-                    <div class="flex gap-1">
-                        <div class="flex-1 bg-white border border-slate-200 p-1.5 rounded-xl text-[9px] text-slate-400 font-mono">INBJUDNINGSKOD...</div>
-                        <span class="bg-amber-600 text-white text-[9px] font-bold px-2.5 py-1.5 rounded-xl">Gå med</span>
-                    </div>
-                </div>
-            </div>
-
-        </div>
     </section>
 
     <!-- CALL TO ACTION BANNER -->
@@ -271,12 +229,15 @@
         <div class="max-w-4xl mx-auto px-4 text-center space-y-6">
             <h2 class="text-3xl md:text-4xl font-black text-slate-900">Redo att kasta ut?</h2>
             <p class="text-slate-600 text-sm max-w-md mx-auto">
-                Starta appen direkt i din webbläsare utan krångel. Det är helt gratis att komma igång.
+                Starta appen direkt i din webbläsare eller installera den på hemskärmen. Det är helt gratis!
             </p>
-            <div class="pt-2">
-                <a href="https://bitetrackerwebb.vercel.app/app.html" class="inline-block px-10 py-4 rounded-2xl bg-teal-700 hover:bg-teal-800 text-white font-black text-base shadow-lg shadow-teal-700/20 hover:scale-105 active:scale-95 transition">
-                    🚀 Öppna BiteTracker Pro Nu
+            <div class="pt-2 flex flex-wrap gap-3 justify-center">
+                <a href="https://bitetrackerwebb.vercel.app/app.html" class="px-8 py-4 rounded-2xl bg-teal-700 hover:bg-teal-800 text-white font-black text-base shadow-lg shadow-teal-700/20 hover:scale-105 active:scale-95 transition">
+                    🚀 Öppna BiteTracker Pro
                 </a>
+                <button type="button" class="install-app-btn px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-base shadow-md hover:scale-105 active:scale-95 transition flex items-center gap-2">
+                    <span>📲 Installera Appen</span>
+                </button>
             </div>
         </div>
     </section>
@@ -292,5 +253,30 @@
         </div>
     </footer>
 
+    <!-- SKRIPT FÖR PWA INSTALLATION -->
+    <script>
+        let deferredPrompt;
+        const installBtns = document.querySelectorAll('.install-app-btn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        installBtns.forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        console.log('Appen installerades!');
+                    }
+                    deferredPrompt = null;
+                } else {
+                    alert('För att installera appen:\n\n• På iPhone/Safari: Tryck på Dela-knappen (fyrkant med pil upp) och välj "Lägg till på hemskärmen".\n\n• På Android/Chrome: Tryck på tre punkter i menyn och välj "Installera app" eller "Lägg till på startskärmen".');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
