@@ -6,36 +6,33 @@
     <title>BiteTracker Pro – Spara dina fångster & se andras</title>
     <link rel="icon" type="image/jpeg" href="179412295382.jpg">
     <link rel="apple-touch-icon" href="179412295382.jpg">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#ffffff">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      .glass-card {
-        background: rgba(15, 23, 42, 0.75);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+      .clean-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
       }
-      .glass-card-light {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(226, 232, 240, 0.8);
+      .clean-card:hover {
+        border-color: #0d9488;
+        box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.1);
       }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-teal-500 selection:text-white">
+<body class="bg-slate-50 text-slate-900 font-sans antialiased selection:bg-teal-500 selection:text-white">
 
     <!-- NAVIGATION HEADER -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <img src="179412295382.jpg" alt="BiteTracker Logo" class="w-9 h-9 rounded-xl object-cover border border-teal-500/40 shadow-md">
-                <span class="font-black text-lg text-white tracking-tight">BiteTracker <span class="text-teal-400">Pro</span></span>
+                <img src="179412295382.jpg" alt="BiteTracker Logo" class="w-9 h-9 rounded-xl object-cover border border-teal-600/30 shadow-sm">
+                <span class="font-black text-lg text-slate-900 tracking-tight">BiteTracker <span class="text-teal-600">Pro</span></span>
             </div>
             
             <div class="flex items-center gap-4">
-                <a href="#funktioner" class="hidden md:block text-xs font-semibold text-slate-300 hover:text-white transition">Funktioner</a>
-                <a href="https://bitetrackerwebb.vercel.app/app.html" class="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-[0_0_20px_rgba(20,184,166,0.3)] transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5">
+                <a href="#funktioner" class="hidden md:block text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Funktioner</a>
+                <a href="https://bitetrackerwebb.vercel.app/app.html" class="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5">
                     <span>🚀 Öppna Appen</span>
                 </a>
             </div>
@@ -43,52 +40,51 @@
     </header>
 
     <!-- HERO SECTION -->
-    <section class="relative pt-32 pb-20 overflow-hidden border-b border-slate-800/60">
-        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-teal-500/20 via-emerald-500/15 to-amber-500/10 blur-[120px] pointer-events-none rounded-full"></div>
+    <section class="relative pt-32 pb-20 overflow-hidden border-b border-slate-200 bg-white">
+        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-teal-500/10 via-emerald-500/10 to-amber-500/5 blur-[100px] pointer-events-none rounded-full"></div>
 
         <div class="max-w-5xl mx-auto px-4 text-center space-y-6 relative z-10">
-            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-semibold tracking-wide">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold tracking-wide">
                 ✨ Din kompletta digitala fiskejournal
             </div>
             
-            <h1 class="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight">
-                Spara dina fångster på <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-emerald-400 to-amber-300">ett ställe</span> & se andras fångster
+            <h1 class="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight">
+                Spara dina fångster på <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-700 via-emerald-600 to-amber-600">ett ställe</span> & se andras fångster
             </h1>
 
-            <p class="text-slate-400 text-base md:text-lg max-w-2xl mx-auto font-normal">
+            <p class="text-slate-600 text-base md:text-lg max-w-2xl mx-auto font-medium">
                 Håll koll på dina beten, se svenska väderprognoser med live nappindex och delta i spännande fisketävlingar direkt i webbläsaren.
             </p>
 
             <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <a href="https://bitetrackerwebb.vercel.app/app.html" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-sm shadow-[0_0_30px_rgba(20,184,166,0.4)] hover:scale-105 active:scale-95 transition text-center">
+                <a href="https://bitetrackerwebb.vercel.app/app.html" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-teal-700 hover:bg-teal-800 text-white font-black text-sm shadow-lg shadow-teal-700/20 hover:scale-105 active:scale-95 transition text-center">
                     🚀 Starta BiteTracker i webbläsaren
                 </a>
-                <a href="#funktioner" class="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-sm transition text-center">
+                <a href="#funktioner" class="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold text-sm transition text-center">
                     Utforska funktioner
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- SHOWCASE & FEATURE CARDS (BASERADE PÅ BILDERNA) -->
+    <!-- SHOWCASE CARDS (LJUST RENT TEMA) -->
     <section id="funktioner" class="py-20 max-w-6xl mx-auto px-4 space-y-12">
         <div class="text-center space-y-3">
-            <h2 class="text-3xl font-black text-white">Allt du behöver för ett lyckat fiskepass</h2>
-            <p class="text-slate-400 text-sm max-w-xl mx-auto">Rent, snabbt och anpassat för både mobilen och datorn.</p>
+            <h2 class="text-3xl font-black text-slate-900">Allt du behöver för ett lyckat fiskepass</h2>
+            <p class="text-slate-500 text-sm max-w-xl mx-auto">Rent, snabbt och anpassat för både mobilen och datorn.</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            <!-- KORT 1: VÄDER & NAPPINDEX (Bild 3) -->
-            <div class="glass-card p-6 rounded-3xl space-y-4 hover:border-teal-500/40 transition duration-300 flex flex-col justify-between">
+            <!-- KORT 1: VÄDER & NAPPINDEX -->
+            <div class="clean-card p-6 rounded-3xl space-y-4 transition duration-300 flex flex-col justify-between">
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-teal-400 tracking-wider uppercase">⛅ Svenskt Väder</span>
-                        <span class="bg-amber-400 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-full shadow">PRO Aktiv</span>
+                        <span class="text-xs font-bold text-teal-700 tracking-wider uppercase">⛅ Svenskt Väder</span>
+                        <span class="bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-black px-2.5 py-1 rounded-full">PRO Aktiv</span>
                     </div>
 
-                    <!-- Visualisering inspirerad av Bild 3 -->
-                    <div class="bg-gradient-to-br from-teal-950/90 to-slate-900 p-4 rounded-2xl border border-teal-600/30 space-y-3">
+                    <div class="bg-slate-900 text-white p-4 rounded-2xl space-y-3 shadow-md">
                         <div class="flex justify-between items-center">
                             <div>
                                 <span class="text-[9px] text-teal-300 font-bold tracking-wider block">SVENSKT VÄDER & NAPPINDEX</span>
@@ -104,28 +100,28 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-5 gap-1 pt-2 border-t border-teal-800/40 text-center">
-                            <div class="bg-slate-900/80 p-1.5 rounded-lg border border-teal-700/30">
+                        <div class="grid grid-cols-5 gap-1 pt-2 border-t border-slate-800 text-center">
+                            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-slate-700">
                                 <span class="text-[9px] text-slate-300 font-bold block">Tis</span>
                                 <span class="text-xs my-0.5 block">🌧️</span>
                                 <span class="text-[10px] font-black text-white block">5°</span>
                             </div>
-                            <div class="bg-slate-900/80 p-1.5 rounded-lg border border-teal-700/30">
+                            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-slate-700">
                                 <span class="text-[9px] text-slate-300 font-bold block">Ons</span>
                                 <span class="text-xs my-0.5 block">🌧️</span>
                                 <span class="text-[10px] font-black text-white block">6°</span>
                             </div>
-                            <div class="bg-slate-900/80 p-1.5 rounded-lg border border-teal-700/30">
+                            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-slate-700">
                                 <span class="text-[9px] text-slate-300 font-bold block">Tors</span>
                                 <span class="text-xs my-0.5 block">🌧️</span>
                                 <span class="text-[10px] font-black text-white block">5°</span>
                             </div>
-                            <div class="bg-slate-900/80 p-1.5 rounded-lg border border-teal-700/30">
+                            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-slate-700">
                                 <span class="text-[9px] text-slate-300 font-bold block">Fre</span>
                                 <span class="text-xs my-0.5 block">❄️</span>
                                 <span class="text-[10px] font-black text-white block">2°</span>
                             </div>
-                            <div class="bg-slate-900/80 p-1.5 rounded-lg border border-teal-700/30">
+                            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-slate-700">
                                 <span class="text-[9px] text-slate-300 font-bold block">Lör</span>
                                 <span class="text-xs my-0.5 block">☁️</span>
                                 <span class="text-[10px] font-black text-white block">6°</span>
@@ -135,33 +131,33 @@
                 </div>
 
                 <div class="pt-2">
-                    <h3 class="text-lg font-bold text-white mb-1">Live Väder & Nappindex</h3>
-                    <p class="text-xs text-slate-400">7-dagars svensk väderprognos med automatisk beräkning av nappindex för din position.</p>
+                    <h3 class="text-lg font-bold text-slate-900 mb-1">Live Väder & Nappindex</h3>
+                    <p class="text-xs text-slate-500">7-dagars svensk väderprognos med automatisk beräkning av nappindex för din position.</p>
                 </div>
             </div>
 
-            <!-- KORT 2: SE ANDRAS FÅNGSTER (Bild 4) -->
-            <div class="glass-card p-6 rounded-3xl space-y-4 hover:border-emerald-500/40 transition duration-300 flex flex-col justify-between">
+            <!-- KORT 2: SE ANDRAS FÅNGSTER (KORREKT GÄDDBILD) -->
+            <div class="clean-card p-6 rounded-3xl space-y-4 transition duration-300 flex flex-col justify-between">
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-emerald-400 tracking-wider uppercase">🐟 Live Socialt Flöde</span>
-                        <span class="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-500/30">Dela & Gilla</span>
+                        <span class="text-xs font-bold text-emerald-700 tracking-wider uppercase">🐟 Live Socialt Flöde</span>
+                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">Dela & Gilla</span>
                     </div>
 
-                    <!-- Visualisering inspirerad av Bild 4 -->
-                    <div class="bg-white rounded-2xl p-3 text-slate-900 space-y-2.5 shadow-xl">
-                        <div class="flex items-center justify-between border-b pb-2">
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-slate-900 space-y-2.5 shadow-sm">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
                             <div class="flex items-center gap-2">
                                 <div class="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center font-bold text-xs text-slate-800">A</div>
                                 <div>
                                     <span class="font-bold text-xs flex items-center gap-1">Albin <span class="bg-amber-400 text-slate-950 text-[8px] font-black px-1 rounded">🏆 OG</span></span>
-                                    <span class="text-[9px] text-slate-400 block">Vättern</span>
+                                    <span class="text-[9px] text-slate-500 block">Vättern</span>
                                 </div>
                             </div>
                             <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">gädda</span>
                         </div>
-                        <div class="relative h-32 rounded-xl overflow-hidden bg-slate-100">
-                            <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80" alt="Gädda" class="w-full h-full object-cover">
+                        <div class="relative h-32 rounded-xl overflow-hidden bg-slate-200 border border-slate-200">
+                            <!-- Korrekt bild på gädda -->
+                            <img src="https://images.unsplash.com/photo-1535591273668-578e31182c4f?auto=format&fit=crop&w=600&q=80" alt="Storgädda" class="w-full h-full object-cover">
                         </div>
                         <div class="flex items-center justify-between text-xs pt-1 font-semibold text-slate-700">
                             <span>⚖️ 9 kg • 📏 120 cm • 🎣 jigg</span>
@@ -171,24 +167,23 @@
                 </div>
 
                 <div class="pt-2">
-                    <h3 class="text-lg font-bold text-white mb-1">Se andras fångster</h3>
-                    <p class="text-xs text-slate-400">Följ vad andra vana fiskare fångar runt om i landet och inspireras av deras dragnamn och beten.</p>
+                    <h3 class="text-lg font-bold text-slate-900 mb-1">Se andras fångster</h3>
+                    <p class="text-xs text-slate-500">Följ vad andra vana fiskare fångar runt om i landet och inspireras av deras dragnamn och beten.</p>
                 </div>
             </div>
 
-            <!-- KORT 3: SPARA DINA FÅNGSTER (Bild 7 & 8) -->
-            <div class="glass-card p-6 rounded-3xl space-y-4 hover:border-amber-500/40 transition duration-300 flex flex-col justify-between">
+            <!-- KORT 3: SPARA DINA FÅNGSTER -->
+            <div class="clean-card p-6 rounded-3xl space-y-4 transition duration-300 flex flex-col justify-between">
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-amber-400 tracking-wider uppercase">📦 Logg & Beteslåda</span>
-                        <span class="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-500/30">Privat arkiv</span>
+                        <span class="text-xs font-bold text-amber-700 tracking-wider uppercase">📦 Logg & Beteslåda</span>
+                        <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-200">Privat arkiv</span>
                     </div>
 
-                    <!-- Visualisering inspirerad av Bild 8 -->
-                    <div class="bg-white/95 rounded-2xl p-3 text-slate-900 space-y-2 shadow-xl">
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-slate-900 space-y-2 shadow-sm">
                         <span class="text-xs font-bold text-slate-800 flex items-center gap-1">🐟 Dina Fångster (3)</span>
                         
-                        <div class="bg-slate-50 p-2 rounded-xl border flex items-center justify-between text-xs">
+                        <div class="bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
                             <div class="flex items-center gap-2">
                                 <span class="text-base">🐟</span>
                                 <div>
@@ -199,7 +194,7 @@
                             <span class="bg-emerald-100 text-emerald-800 font-bold text-[10px] px-2 py-0.5 rounded-lg">1 kg</span>
                         </div>
 
-                        <div class="bg-slate-50 p-2 rounded-xl border flex items-center justify-between text-xs">
+                        <div class="bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
                             <div class="flex items-center gap-2">
                                 <span class="text-base">🐟</span>
                                 <div>
@@ -213,56 +208,56 @@
                 </div>
 
                 <div class="pt-2">
-                    <h3 class="text-lg font-bold text-white mb-1">Spara dina fångster på ett ställe</h3>
-                    <p class="text-xs text-slate-400">Bygg din egna beteslåda, logga fångster med exakt position på minikartan och spara dina rekord.</p>
+                    <h3 class="text-lg font-bold text-slate-900 mb-1">Spara dina fångster på ett ställe</h3>
+                    <p class="text-xs text-slate-500">Bygg din egna beteslåda, logga fångster med exakt position på minikartan och spara dina rekord.</p>
                 </div>
             </div>
 
         </div>
 
-        <!-- EKSTRA FUNKTIONER BAR (KARTA OCH TÄVLINGAR) -->
+        <!-- EKSTRA FUNKTIONER -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
             
-            <!-- KARTFOKUS (Bild 6) -->
-            <div class="glass-card p-6 rounded-3xl flex flex-col md:flex-row items-center gap-6 border-slate-800">
+            <!-- KARTFOKUS -->
+            <div class="clean-card p-6 rounded-3xl flex flex-col md:flex-row items-center gap-6">
                 <div class="w-full md:w-1/2 space-y-3">
-                    <span class="text-xs font-bold text-teal-400 tracking-wider uppercase">🗺️ Kartfunktioner</span>
-                    <h3 class="text-xl font-bold text-white">Sök sjöar & navigera</h3>
-                    <p class="text-xs text-slate-400 leading-relaxed">
+                    <span class="text-xs font-bold text-teal-700 tracking-wider uppercase">🗺️ Kartfunktioner</span>
+                    <h3 class="text-xl font-bold text-slate-900">Sök sjöar & navigera</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">
                         Sök enkelt efter svenska sjöar eller landskap. Växla snabbt mellan Standard karta, Satellitvy och Djupkarta för bästa överblick.
                     </p>
-                    <a href="https://bitetrackerwebb.vercel.app/app.html" class="inline-block text-xs font-bold text-teal-400 hover:text-teal-300 underline">Öppna kartan i appen →</a>
+                    <a href="https://bitetrackerwebb.vercel.app/app.html" class="inline-block text-xs font-bold text-teal-700 hover:text-teal-800 underline">Öppna kartan i appen →</a>
                 </div>
-                <div class="w-full md:w-1/2 bg-slate-900 rounded-2xl p-3 border border-slate-800 space-y-2">
-                    <div class="bg-white/95 p-1.5 rounded-xl text-slate-800 text-[10px] font-semibold flex justify-between">
+                <div class="w-full md:w-1/2 bg-slate-100 rounded-2xl p-3 border border-slate-200 space-y-2">
+                    <div class="bg-white p-1.5 rounded-xl text-slate-800 text-[10px] font-semibold flex justify-between border border-slate-200">
                         <span>🔍 Sök plats eller sjö...</span>
                         <span class="bg-teal-700 text-white px-2 py-0.5 rounded font-bold">Sök</span>
                     </div>
                     <div class="flex gap-1 text-[9px] font-bold">
-                        <span class="flex-1 text-center bg-slate-800 text-white py-1 rounded">🌊 Sjöar</span>
-                        <span class="flex-1 text-center bg-slate-800 text-white py-1 rounded">🐟 Fångster</span>
-                        <span class="flex-1 text-center bg-slate-800 text-white py-1 rounded">⚓ Privata</span>
+                        <span class="flex-1 text-center bg-white border border-slate-200 text-slate-800 py-1 rounded">🌊 Sjöar</span>
+                        <span class="flex-1 text-center bg-white border border-slate-200 text-slate-800 py-1 rounded">🐟 Fångster</span>
+                        <span class="flex-1 text-center bg-white border border-slate-200 text-slate-800 py-1 rounded">⚓ Privata</span>
                     </div>
                 </div>
             </div>
 
-            <!-- TÄVLINGAR (Bild 5) -->
-            <div class="glass-card p-6 rounded-3xl flex flex-col md:flex-row items-center gap-6 border-slate-800">
+            <!-- TÄVLINGAR -->
+            <div class="clean-card p-6 rounded-3xl flex flex-col md:flex-row items-center gap-6">
                 <div class="w-full md:w-1/2 space-y-3">
-                    <span class="text-xs font-bold text-amber-400 tracking-wider uppercase">🏆 Kompis-Tävlingar</span>
-                    <h3 class="text-xl font-bold text-white">Tävla om största fisken</h3>
-                    <p class="text-xs text-slate-400 leading-relaxed">
+                    <span class="text-xs font-bold text-amber-700 tracking-wider uppercase">🏆 Kompis-Tävlingar</span>
+                    <h3 class="text-xl font-bold text-slate-900">Tävla om största fisken</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">
                         Skapa privata tävlingar eller gå med med en inbjudningskod. Ranka fångster på vikt eller längd och kåra en vinnare!
                     </p>
-                    <a href="https://bitetrackerwebb.vercel.app/app.html" class="inline-block text-xs font-bold text-amber-400 hover:text-amber-300 underline">Skapa en tävling nu →</a>
+                    <a href="https://bitetrackerwebb.vercel.app/app.html" class="inline-block text-xs font-bold text-amber-700 hover:text-amber-800 underline">Skapa en tävling nu →</a>
                 </div>
-                <div class="w-full md:w-1/2 bg-white rounded-2xl p-3 text-slate-900 space-y-2 shadow-lg">
+                <div class="w-full md:w-1/2 bg-slate-50 rounded-2xl p-3 border border-slate-200 text-slate-900 space-y-2">
                     <div class="flex justify-between items-center">
                         <span class="font-bold text-xs text-slate-900 flex items-center gap-1">🏆 Tävlingar</span>
                         <span class="bg-blue-900 text-white text-[9px] font-bold px-2 py-1 rounded-lg">+ Skapa Privat</span>
                     </div>
                     <div class="flex gap-1">
-                        <div class="flex-1 bg-slate-100 p-1.5 rounded-xl text-[9px] text-slate-400 font-mono">INBJUDNINGSKOD...</div>
+                        <div class="flex-1 bg-white border border-slate-200 p-1.5 rounded-xl text-[9px] text-slate-400 font-mono">INBJUDNINGSKOD...</div>
                         <span class="bg-amber-600 text-white text-[9px] font-bold px-2.5 py-1.5 rounded-xl">Gå med</span>
                     </div>
                 </div>
@@ -272,14 +267,14 @@
     </section>
 
     <!-- CALL TO ACTION BANNER -->
-    <section class="py-16 border-t border-slate-800/80 bg-gradient-to-b from-slate-950 to-slate-900">
+    <section class="py-16 border-t border-slate-200 bg-white">
         <div class="max-w-4xl mx-auto px-4 text-center space-y-6">
-            <h2 class="text-3xl md:text-4xl font-black text-white">Redo att kasta ut?</h2>
-            <p class="text-slate-400 text-sm max-w-md mx-auto">
+            <h2 class="text-3xl md:text-4xl font-black text-slate-900">Redo att kasta ut?</h2>
+            <p class="text-slate-600 text-sm max-w-md mx-auto">
                 Starta appen direkt i din webbläsare utan krångel. Det är helt gratis att komma igång.
             </p>
             <div class="pt-2">
-                <a href="https://bitetrackerwebb.vercel.app/app.html" class="inline-block px-10 py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-base shadow-[0_0_35px_rgba(20,184,166,0.4)] hover:scale-105 active:scale-95 transition">
+                <a href="https://bitetrackerwebb.vercel.app/app.html" class="inline-block px-10 py-4 rounded-2xl bg-teal-700 hover:bg-teal-800 text-white font-black text-base shadow-lg shadow-teal-700/20 hover:scale-105 active:scale-95 transition">
                     🚀 Öppna BiteTracker Pro Nu
                 </a>
             </div>
@@ -287,13 +282,13 @@
     </section>
 
     <!-- FOOTER -->
-    <footer class="py-8 border-t border-slate-900 text-center text-xs text-slate-500">
+    <footer class="py-8 border-t border-slate-200 bg-slate-50 text-center text-xs text-slate-500">
         <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-2">
                 <img src="179412295382.jpg" alt="Logo" class="w-6 h-6 rounded-md object-cover">
-                <span class="font-bold text-slate-400">BiteTracker Pro © 2026</span>
+                <span class="font-bold text-slate-600">BiteTracker Pro © 2026</span>
             </div>
-            <a href="https://bitetrackerwebb.vercel.app/app.html" class="text-teal-400 hover:underline font-semibold">Starta Webbrapp...</a>
+            <a href="https://bitetrackerwebb.vercel.app/app.html" class="text-teal-700 font-bold hover:underline">Starta Webbrapp...</a>
         </div>
     </footer>
 
