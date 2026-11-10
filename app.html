@@ -119,7 +119,15 @@ const getWeatherDetails = (code) => {
   return { icon: '☀️', text: 'Klart' };
 };
 
-// --- EGEN IN-APP MEDDELANDERUTA (TOAST-BANNER) ---
+const formatLocation = (item) => {
+  const addr = item.address || {};
+  const name = item.display_name.split(',')[0];
+  const region = addr.state || addr.county || addr.region || addr.province || '';
+  const country = addr.country || '';
+  return { name, region, country };
+};
+
+// --- EGEN IN-APP MEDDELANDERUTA ---
 function ToastNotification({ toast }) {
   if (!toast) return null;
   return (
@@ -398,7 +406,7 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
   );
 }
 
-// --- TÄVLINGAR ---
+// --- TÄVLINGAR MED "LÄMNA TÄVLING"-FUNKTION ---
 function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, showToast }) {
   const [competitions, setCompetitions] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -447,6 +455,24 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
     }
   };
 
+  const handleLeaveComp = async (comp) => {
+    if (!user || user.isAnonymous) {
+      showToast("Du måste vara inloggad för att lämna tävlingar.");
+      return;
+    }
+    try {
+      const compRef = db.collection('artifacts').doc(appId).collection('competitions').doc(comp.id);
+      const updatedSubmissions = (comp.submissions || []).filter(s => s.userId !== user.uid);
+      await compRef.update({
+        participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
+        submissions: updatedSubmissions
+      });
+      showToast(`🚪 Du har lämnat tävlingen "${comp.title}"`);
+    } catch (err) {
+      showToast("Fel vid lämning av tävling.");
+    }
+  };
+
   const handleSubmitCatch = async (e) => {
     e.preventDefault();
     if (!selectedComp || !selectedCatchId) return;
@@ -489,6 +515,7 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
         const subs = c.submissions || [];
         subs.sort((a, b) => b.value - a.value);
         const winner = subs.length > 0 ? subs[0] : null;
+        const isParticipant = user && !user.isAnonymous && (c.participants || []).includes(user.uid);
 
         return (
           <div key={c.id} className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
@@ -500,7 +527,14 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
                   {isExpired ? '🏁 Tävlingen är avslutad!' : `⏰ Tid kvar: ${Math.ceil((c.expiresAt - Date.now()) / (1000*60*60*24))} dagar`}
                 </p>
               </div>
-              <span className="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-1 rounded-lg">{c.code}</span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-1 rounded-lg">{c.code}</span>
+                {isParticipant && (
+                  <button onClick={() => handleLeaveComp(c)} className="bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-red-200 transition">
+                    🚪 Lämna
+                  </button>
+                )}
+              </div>
             </div>
 
             {isExpired && winner && (
@@ -520,7 +554,7 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
               ))}
             </div>
 
-            {!isExpired && user && !user.isAnonymous && (
+            {!isExpired && isParticipant && (
               <button onClick={() => { setSelectedComp(c); setShowSubmitModal(true); }} className="w-full bg-teal-700 text-white font-bold py-2 rounded-xl text-xs shadow">
                 📤 Skicka in bidrag från dina fångster
               </button>
@@ -706,7 +740,7 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
   );
 }
 
-// --- KARTA MED SÖKFUNKTION ---
+// --- KARTA ---
 function MapView({ user, currentTheme, isPro, showToast }) {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef(null);
@@ -716,6 +750,9 @@ function MapView({ user, currentTheme, isPro, showToast }) {
 
   const [mapStyle, setMapStyle] = useState('topo');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
   const [approvedLakes, setApprovedLakes] = useState([]);
   const [privateMarkers, setPrivateMarkers] = useState([]);
   const [globalCatches, setGlobalCatches] = useState([]);
@@ -772,20 +809,29 @@ function MapView({ user, currentTheme, isPro, showToast }) {
     tileLayerRef.current = window.L.tileLayer(url).addTo(mapInstance.current);
   };
 
+  const selectPlaceOnMap = (item) => {
+    const lat = parseFloat(item.lat);
+    const lon = parseFloat(item.lon);
+    if (mapInstance.current) {
+      mapInstance.current.setView([lat, lon], 12);
+    }
+  };
+
   const handleSearchPlace = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(searchQuery)}`);
       const data = await res.json();
       if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lon = parseFloat(data[0].lon);
-        if (mapInstance.current) {
-          mapInstance.current.setView([lat, lon], 12);
-        }
-        showToast(`📍 Flyttade kartan till: ${data[0].display_name.split(',')[0]}`);
+        setSearchResults(data);
+        setShowSearchResults(true);
+        selectPlaceOnMap(data[0]);
+        const loc = formatLocation(data[0]);
+        showToast(`📍 Översta träffen vald: ${loc.name}`);
       } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
         showToast("Kunde inte hitta platsen på kartan.");
       }
     } catch (err) {
@@ -824,19 +870,52 @@ function MapView({ user, currentTheme, isPro, showToast }) {
   return (
     <div className="relative w-full h-[calc(100vh-140px)]">
       <div className="absolute top-4 left-4 right-4 z-[400] max-w-xl mx-auto space-y-2">
-        {/* SÖKFÄLT FÖR STORA KARTAN */}
-        <form onSubmit={handleSearchPlace} className="flex gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl shadow-lg border">
-          <input 
-            type="text" 
-            placeholder="🔍 Sök plats eller sjö (t.ex. Vättern)..." 
-            value={searchQuery} 
-            onChange={e => setSearchQuery(e.target.value)} 
-            className="flex-1 px-3 py-1.5 bg-slate-100 rounded-xl text-xs outline-none font-medium"
-          />
-          <button type="submit" className="bg-teal-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow hover:bg-teal-800 transition">
-            Sök
-          </button>
-        </form>
+        <div className="space-y-1">
+          <form onSubmit={handleSearchPlace} className="flex gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl shadow-lg border">
+            <input 
+              type="text" 
+              placeholder="🔍 Sök plats eller sjö (t.ex. Vättern)..." 
+              value={searchQuery} 
+              onChange={e => setSearchQuery(e.target.value)} 
+              className="flex-1 px-3 py-1.5 bg-slate-100 rounded-xl text-xs outline-none font-medium"
+            />
+            <button type="submit" className="bg-teal-700 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs shadow hover:bg-teal-800 transition">
+              Sök
+            </button>
+          </form>
+
+          {showSearchResults && searchResults.length > 0 && (
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border overflow-hidden max-h-56 overflow-y-auto">
+              <div className="p-2 bg-slate-100 border-b flex justify-between items-center text-[10px] font-bold text-slate-500">
+                <span>TRÄFFAR ({searchResults.length}) - ÖVERSTA VALD</span>
+                <button type="button" onClick={() => setShowSearchResults(false)} className="text-slate-400 hover:text-slate-600 font-bold px-1">✕</button>
+              </div>
+              {searchResults.map((item, idx) => {
+                const loc = formatLocation(item);
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      selectPlaceOnMap(item);
+                      setShowSearchResults(false);
+                      showToast(`📍 Flyttade till: ${loc.name}`);
+                    }}
+                    className="w-full text-left p-2.5 border-b border-slate-100 hover:bg-teal-50 transition flex flex-col"
+                  >
+                    <span className="font-bold text-xs text-slate-800 flex items-center justify-between">
+                      <span>📍 {loc.name}</span>
+                      {idx === 0 && <span className="bg-teal-100 text-teal-800 text-[9px] px-1.5 py-0.2 rounded font-bold">Längst upp</span>}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {[loc.region, loc.country].filter(Boolean).join(' • ') || item.display_name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         <div className="flex gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-lg border text-xs font-bold">
           <button onClick={() => setShowLakes(!showLakes)} className={`flex-1 py-1 rounded-xl ${showLakes ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>🌊 Sjöar</button>
@@ -853,8 +932,15 @@ function MapView({ user, currentTheme, isPro, showToast }) {
       <div ref={mapRef} className="w-full h-full" />
 
       {clickedCoords && !showSuggestModal && !showPrivateModal && (
-        <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border z-[1000] max-w-xl mx-auto space-y-2">
-          <h3 className="font-bold text-slate-800 text-xs">📍 Position vald på kartan</h3>
+        <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border z-[1000] max-w-xl mx-auto space-y-2 relative">
+          <button 
+            onClick={() => setClickedCoords(null)} 
+            className="absolute top-3 right-3 text-slate-400 hover:text-slate-700 bg-slate-100 p-1 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold transition"
+            title="Avbryt"
+          >
+            ✕
+          </button>
+          <h3 className="font-bold text-slate-800 text-xs pr-6">📍 Position vald på kartan</h3>
           <div className="grid grid-cols-2 gap-2">
             <button onClick={() => setShowSuggestModal(true)} className="bg-teal-700 text-white font-bold p-2.5 rounded-xl text-xs shadow">Föreslå sjö</button>
             <button onClick={() => setShowPrivateModal(true)} className="bg-amber-600 text-white font-bold p-2.5 rounded-xl text-xs shadow">Spara privat</button>
@@ -901,7 +987,7 @@ function MapView({ user, currentTheme, isPro, showToast }) {
   );
 }
 
-// --- LOGGA FÅNGST MED SÖK PÅ MINIKARTAN ---
+// --- LOGGA FÅNGST ---
 function CatchLogView({ user, t, currentTheme, profile, showToast }) {
   const [species, setSpecies] = useState('');
   const [weight, setWeight] = useState('');
@@ -911,6 +997,9 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
   const [image, setImage] = useState(null);
   const [location, setLocation] = useState('');
   const [coords, setCoords] = useState({ lat: 59.3293, lng: 18.0686 });
+
+  const [miniSearchResults, setMiniSearchResults] = useState([]);
+  const [showMiniSearchResults, setShowMiniSearchResults] = useState(false);
 
   const miniMapRef = useRef(null);
   const miniMapInstance = useRef(null);
@@ -935,23 +1024,32 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
     miniMarkerRef.current = marker;
   }, []);
 
+  const selectMiniPlace = (item) => {
+    const lat = parseFloat(item.lat);
+    const lng = parseFloat(item.lon);
+    setCoords({ lat, lng });
+    if (miniMapInstance.current) {
+      miniMapInstance.current.setView([lat, lng], 12);
+    }
+    if (miniMarkerRef.current) {
+      miniMarkerRef.current.setLatLng([lat, lng]);
+    }
+  };
+
   const handleSearchMiniMap = async () => {
     if (!location.trim()) return;
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(location)}`);
       const data = await res.json();
       if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
-        setCoords({ lat, lng });
-        if (miniMapInstance.current) {
-          miniMapInstance.current.setView([lat, lng], 12);
-        }
-        if (miniMarkerRef.current) {
-          miniMarkerRef.current.setLatLng([lat, lng]);
-        }
-        showToast(`📍 Minikartan flyttad till: ${data[0].display_name.split(',')[0]}`);
+        setMiniSearchResults(data);
+        setShowMiniSearchResults(true);
+        selectMiniPlace(data[0]);
+        const loc = formatLocation(data[0]);
+        showToast(`📍 Översta träffen vald: ${loc.name}`);
       } else {
+        setMiniSearchResults([]);
+        setShowMiniSearchResults(false);
         showToast("Hittade inte platsen på kartan.");
       }
     } catch (err) {
@@ -988,13 +1086,44 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
         </div>
         <input type="text" placeholder="Bete / Drag" value={lure} onChange={e => setLure(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
         
-        {/* PLATS MED SÖK-KNAPP */}
-        <div className="space-y-1">
+        <div className="space-y-1 relative">
           <label className="text-xs font-bold text-slate-700">Plats / Sjö:</label>
           <div className="flex gap-2">
             <input type="text" placeholder="Sök eller skriv plats..." value={location} onChange={e => setLocation(e.target.value)} required className="flex-1 p-3 bg-slate-50 border rounded-xl text-sm" />
-            <button type="button" onClick={handleSearchMiniMap} className="bg-teal-700 text-white font-bold px-3 py-2 rounded-xl text-xs shadow hover:bg-teal-800 shrink-0">🔍 Sök plats</button>
+            <button type="button" onClick={handleSearchMiniMap} className="bg-teal-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow hover:bg-teal-800 shrink-0">🔍 Sök plats</button>
           </div>
+
+          {showMiniSearchResults && miniSearchResults.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-2xl border overflow-hidden max-h-48 overflow-y-auto mt-1 z-[100] relative">
+              <div className="p-2 bg-slate-100 border-b flex justify-between items-center text-[10px] font-bold text-slate-500">
+                <span>TRÄFFAR ({miniSearchResults.length})</span>
+                <button type="button" onClick={() => setShowMiniSearchResults(false)} className="text-slate-400 font-bold px-1">✕</button>
+              </div>
+              {miniSearchResults.map((item, idx) => {
+                const loc = formatLocation(item);
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      selectMiniPlace(item);
+                      setShowMiniSearchResults(false);
+                      setLocation(loc.name);
+                    }}
+                    className="w-full text-left p-2.5 border-b border-slate-100 hover:bg-teal-50 transition flex flex-col"
+                  >
+                    <span className="font-bold text-xs text-slate-800 flex items-center justify-between">
+                      <span>📍 {loc.name}</span>
+                      {idx === 0 && <span className="bg-teal-100 text-teal-800 text-[9px] px-1.5 py-0.2 rounded font-bold">Vald</span>}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {[loc.region, loc.country].filter(Boolean).join(' • ') || item.display_name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="space-y-1">
@@ -1198,10 +1327,10 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
   );
 }
 
-function NavItem({ Icon, label, isActive, onClick, currentTheme }) {
+function NavItem({ Icon, label, isActive, onClick, currentTheme, customIcon }) {
   return (
     <button onClick={onClick} className={`flex flex-col items-center justify-center py-1.5 px-3 min-w-[50px] rounded-xl transition ${ isActive ? `${currentTheme.text} ${currentTheme.light} font-bold scale-105` : 'text-slate-400' }`}>
-      <Icon className="h-5 w-5 mb-0.5"/> <span className="text-[9px]">{label}</span>
+      {customIcon ? customIcon : <Icon className="h-5 w-5 mb-0.5"/>} <span className="text-[9px]">{label}</span>
     </button>
   );
 }
@@ -1294,7 +1423,18 @@ function FiskeAppen() {
           <NavItem Icon={Trophy} isActive={activeTab === 'compete'} label="Tävling" onClick={() => setActiveTab('compete')} currentTheme={currentTheme} />
           <NavItem Icon={MapComponent} isActive={activeTab === 'map'} label={t('nav_map')} onClick={() => setActiveTab('map')} currentTheme={currentTheme} />
           <NavItem Icon={Fish} isActive={activeTab === 'log'} label={t('nav_log')} onClick={() => setActiveTab('log')} currentTheme={currentTheme} />
-          <NavItem Icon={User} isActive={activeTab === 'profile'} label={t('nav_profile')} onClick={() => setActiveTab('profile')} currentTheme={currentTheme} />
+          <NavItem 
+            Icon={User} 
+            customIcon={
+              profile?.avatar ? (
+                <img src={profile.avatar} alt="Profil" className={`h-5 w-5 rounded-full object-cover mb-0.5 border ${activeTab === 'profile' ? 'border-teal-600' : 'border-slate-300'}`} />
+              ) : null
+            }
+            isActive={activeTab === 'profile'} 
+            label={t('nav_profile')} 
+            onClick={() => setActiveTab('profile')} 
+            currentTheme={currentTheme} 
+          />
         </div>
       </nav>
 
