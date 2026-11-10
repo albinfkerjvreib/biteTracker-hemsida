@@ -29,6 +29,19 @@
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       .leaflet-container { z-index: 0; outline: none; }
+      
+      /* Anpassade snygga kartikoner */
+      .custom-map-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        border: 2px solid white;
+        font-size: 14px;
+        transition: transform 0.2s;
+      }
+      .custom-map-icon:hover { transform: scale(1.15); }
     </style>
 </head>
 <body class="bg-slate-50 overflow-hidden text-slate-800">
@@ -109,7 +122,6 @@ function ToastNotification({ toast }) {
   );
 }
 
-// --- VAD INGÅR I PRO (KOMPONENT) ---
 function ProBenefitsList() {
   return (
     <div className="bg-slate-900/50 p-3 rounded-2xl border border-amber-500/30 text-left space-y-1.5 text-xs text-slate-200">
@@ -136,9 +148,7 @@ function WelcomeProModal({ isOpen, onClose, onLoginClick }) {
           <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-amber-300">Välkommen till BiteTracker!</h2>
           <p className="text-xs text-slate-300">Logga in helt gratis och få tillgång till <b className="text-amber-300">PRO-funktionerna</b>!</p>
         </div>
-        
         <ProBenefitsList />
-
         <button onClick={() => { onClose(); onLoginClick(); }} className="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 font-black p-3.5 rounded-2xl text-sm shadow-lg">
           Logga in & Få PRO Gratis
         </button>
@@ -204,9 +214,7 @@ function AuthModal({ isOpen, onClose, user, currentTheme, showToast }) {
             </label>
 
             <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold p-3 rounded-xl text-sm`}>{isSignUp ? 'Skapa konto' : 'Logga in'}</button>
-            
             <ProBenefitsList />
-
             <div className="text-center pt-1"><button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-xs text-blue-600 font-semibold">{isSignUp ? 'Har du konto? Logga in' : 'Skapa konto gratis'}</button></div>
           </form>
         )}
@@ -215,22 +223,19 @@ function AuthModal({ isOpen, onClose, user, currentTheme, showToast }) {
   );
 }
 
-// --- FLÖDE MED ÄKTA 7-DAGARS VÄDERPROGNOS ---
-function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, showToast }) {
+// --- FLÖDE ---
+function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, showToast, isAdmin }) {
   const [weather, setWeather] = useState(null);
   const [dailyForecast, setDailyForecast] = useState([]);
 
   useEffect(() => {
     const fetchWeather = async () => {
       try {
-        // Hämta äkta väder och 7-dagars prognos från Open-Meteo
         const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,windspeed_10m_max&timezone=Europe%2FStockholm');
         const data = await res.json();
-        
         if (data && data.current_weather) {
           setWeather({ temp: Math.round(data.current_weather.temperature), wind: data.current_weather.windspeed });
         }
-        
         if (data && data.daily && data.daily.time) {
           const days = data.daily.time.map((tStr, idx) => {
             const d = new Date(tStr);
@@ -244,9 +249,7 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
           });
           setDailyForecast(days);
         }
-      } catch (err) {
-        setWeather({ temp: 15, wind: 4.0 });
-      }
+      } catch (err) { setWeather({ temp: 15, wind: 4.0 }); }
     };
     fetchWeather();
   }, []);
@@ -257,6 +260,11 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
     const likes = post.likes || [];
     if (likes.includes(user.uid)) await ref.update({ likes: firebase.firestore.FieldValue.arrayRemove(user.uid) });
     else await ref.update({ likes: firebase.firestore.FieldValue.arrayUnion(user.uid) });
+  };
+
+  const handleDeletePost = async (postId) => {
+    await db.collection('artifacts').doc(appId).collection('public_feed').doc(postId).delete();
+    showToast("🗑️ Inlägg borttaget från flödet!");
   };
 
   return (
@@ -281,7 +289,6 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
           <div className="bg-amber-400 text-slate-900 font-black px-3 py-2 rounded-xl text-center text-xs shadow"><span>🔥 Nappindex</span><span className="block text-sm">9/10</span></div>
         </div>
 
-        {/* 7-DAGARS VÄDERPROGNOS */}
         <div>
           <div className="flex items-center justify-between text-xs mb-2">
             <span className="font-bold text-teal-200 flex items-center gap-1"><CalendarIcon className="h-3.5 w-3.5"/> 7-Dagars Prognos</span>
@@ -312,8 +319,10 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
         {globalFeed.map(post => {
           const likesCount = (post.likes || []).length;
           const hasLiked = user && !user.isAnonymous && (post.likes || []).includes(user.uid);
+          const isOwner = user && !user.isAnonymous && post.authorUid === user.uid;
+
           return (
-            <div key={post.id} className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+            <div key={post.id} className="bg-white rounded-2xl shadow-sm border overflow-hidden relative">
               <div className="p-4 flex items-center justify-between border-b">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs overflow-hidden">
@@ -321,7 +330,15 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
                   </div>
                   <div><span className="font-bold text-sm flex items-center gap-1">{post.authorName || 'Fiskare'} {post.isOG && <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-1.5 py-0.2 rounded-full">🏆 OG</span>}</span><span className="text-[10px] text-slate-400">{post.location}</span></div>
                 </div>
-                <span className="bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-bold">{post.species}</span>
+                
+                <div className="flex items-center gap-2">
+                  <span className="bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-bold">{post.species}</span>
+                  {(isAdmin || isOwner) && (
+                    <button onClick={() => handleDeletePost(post.id)} className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-lg border border-red-200 transition">
+                      🗑️ {isAdmin ? 'Admin Ta bort' : 'Ta bort'}
+                    </button>
+                  )}
+                </div>
               </div>
               {post.image && <img src={post.image} alt={post.species} className="w-full h-64 object-cover" />}
               <div className="p-4 space-y-2">
@@ -511,7 +528,7 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
   );
 }
 
-// --- PROFIL MED FÅNGSTBILDER ---
+// --- PROFIL MED FÅNGSTBILDER OCH RADERING ---
 function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onOpenSettings, catches, lures, showToast }) {
   const [bio, setBio] = useState(profile.bio || '');
   const [lureName, setLureName] = useState('');
@@ -538,6 +555,16 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
       showToast("Profilbild uppdaterad!");
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleDeleteCatch = async (catchId) => {
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').doc(catchId).delete();
+    showToast("🗑️ Fångst borttagen!");
+  };
+
+  const handleDeleteLure = async (lureId) => {
+    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures').doc(lureId).delete();
+    showToast("Bete borttaget!");
   };
 
   return (
@@ -593,6 +620,17 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
           </div>
           <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold py-2 rounded-xl text-xs shadow`}>+ Lägg till</button>
         </form>
+        
+        {lures.length > 0 && (
+          <div className="space-y-1.5 pt-2 border-t">
+            {lures.map(l => (
+              <div key={l.id} className="flex justify-between items-center bg-slate-50 p-2 rounded-xl text-xs border">
+                <span><b>🎣 {l.name}</b> {l.type ? `(${l.type})` : ''} {l.color ? `• ${l.color}` : ''}</span>
+                <button onClick={() => handleDeleteLure(l.id)} className="text-red-500 font-bold px-2 py-0.5 hover:bg-red-50 rounded">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
@@ -613,7 +651,10 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
                 {c.description && <p className="text-[11px] text-slate-600 italic truncate">"{c.description}"</p>}
               </div>
             </div>
-            <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg shrink-0">{c.weight} kg</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">{c.weight} kg</span>
+              <button onClick={() => handleDeleteCatch(c.id)} className="text-red-500 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg font-bold border border-red-200">🗑️</button>
+            </div>
           </div>
         ))}
       </div>
@@ -621,7 +662,7 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
   );
 }
 
-// --- KARTA ---
+// --- KARTA MED ANPASSADE IKONER ---
 function MapView({ user, currentTheme, isPro, showToast }) {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef(null);
@@ -690,21 +731,26 @@ function MapView({ user, currentTheme, isPro, showToast }) {
     if (!mapInstance.current || !markersLayer.current || !window.L) return;
     markersLayer.current.clearLayers();
 
+    // ANPASSADE IKONER
+    const lakeIcon = window.L.divIcon({ className: 'custom-map-icon bg-teal-700 text-white w-8 h-8', html: '🌊', iconSize: [32, 32], iconAnchor: [16, 16] });
+    const catchIcon = window.L.divIcon({ className: 'custom-map-icon bg-emerald-600 text-white w-8 h-8', html: '🐟', iconSize: [32, 32], iconAnchor: [16, 16] });
+    const privateIcon = window.L.divIcon({ className: 'custom-map-icon bg-amber-600 text-white w-8 h-8', html: '🔒', iconSize: [32, 32], iconAnchor: [16, 16] });
+
     if (showLakes) {
       approvedLakes.forEach(l => {
-        if (l.lat && l.lng) window.L.marker([l.lat, l.lng]).addTo(markersLayer.current).bindPopup(`<b>🌊 ${l.name}</b><br>${l.rules}`);
+        if (l.lat && l.lng) window.L.marker([l.lat, l.lng], { icon: lakeIcon }).addTo(markersLayer.current).bindPopup(`<b>🌊 ${l.name}</b><br><span style="font-size:11px;">Fisk: ${l.fish || 'Alla'}</span><br><span style="font-size:10px;color:#666;">${l.rules}</span>`);
       });
     }
     if (showPrivate && isPro) {
       privateMarkers.forEach(p => {
-        if (p.lat && p.lng) window.L.marker([p.lat, p.lng]).addTo(markersLayer.current).bindPopup(`<b>🔒 ${p.title}</b>`);
+        if (p.lat && p.lng) window.L.marker([p.lat, p.lng], { icon: privateIcon }).addTo(markersLayer.current).bindPopup(`<b>🔒 ${p.title}</b>`);
       });
     }
     if (showCatches) {
       globalCatches.forEach(c => {
         if (c.lat && c.lng) {
           const imgHtml = c.image ? `<img src="${c.image}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-top:4px;" />` : '';
-          window.L.marker([c.lat, c.lng]).addTo(markersLayer.current).bindPopup(`<b>🐟 ${c.species} (${c.weight} kg)</b><br><span style="font-size:11px;">${c.location || ''}</span>${imgHtml}`);
+          window.L.marker([c.lat, c.lng], { icon: catchIcon }).addTo(markersLayer.current).bindPopup(`<b>🐟 ${c.species} (${c.weight} kg)</b><br><span style="font-size:11px;">${c.location || ''}</span>${imgHtml}`);
         }
       });
     }
@@ -819,7 +865,7 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
         species, weight: parseFloat(weight), length: length ? parseFloat(length) : null,
         lure, description, image, location, lat: coords.lat, lng: coords.lng,
         authorName: profile.displayName || 'Fiskare', isOG: profile.isOG || false,
-        avatar: profile.avatar || null,
+        authorUid: user.uid, avatar: profile.avatar || null,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').add(data);
@@ -854,32 +900,32 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
   );
 }
 
-// --- INSTÄLLNINGAR & ADMIN-PANEL MED SJÖ-HANTERING (PINKOD 6031) ---
-function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro, showToast }) {
+// --- INSTÄLLNINGAR & ADMIN-PANEL (MED REDIGERING AV SJÖAR) ---
+function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro, showToast, isAdmin, setIsAdmin }) {
   const [name, setName] = useState(profile.displayName || '');
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
-  const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bitetracker_admin') === 'true');
   const [pendingLakes, setPendingLakes] = useState([]);
   const [approvedLakes, setApprovedLakes] = useState([]);
+  
+  // Redigerings-state för sjöar i Admin
+  const [editingLake, setEditingLake] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editFish, setEditFish] = useState('');
+  const [editRules, setEditRules] = useState('');
 
   useEffect(() => { setName(profile.displayName || ''); }, [profile]);
 
   useEffect(() => {
     if (!isAdmin) return;
-    
-    // Hämta väntande sjöar
     const unsubPending = db.collection('artifacts').doc(appId).collection('lake_suggestions').onSnapshot(snap => {
       const list = []; snap.forEach(d => list.push({ id: d.id, ...d.data() }));
       setPendingLakes(list.filter(l => l.status === 'pending'));
     });
-
-    // Hämta redan godkända sjöar
     const unsubApproved = db.collection('artifacts').doc(appId).collection('approved_lakes').onSnapshot(snap => {
       const list = []; snap.forEach(d => list.push({ id: d.id, ...d.data() }));
       setApprovedLakes(list);
     });
-
     return () => { unsubPending(); unsubApproved(); };
   }, [isAdmin]);
 
@@ -893,10 +939,10 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
 
   const handleApproveLake = async (lake) => {
     await db.collection('artifacts').doc(appId).collection('approved_lakes').add({
-      name: lake.name, rules: lake.rules, fish: lake.fish, lat: lake.lat, lng: lake.lng, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      name: lake.name, rules: lake.rules || 'Standardregler', fish: lake.fish || 'Alla arter', lat: lake.lat, lng: lake.lng, createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(lake.id).delete();
-    showToast(`🌊 ${lake.name} har godkänts och är sparad på kartan!`);
+    showToast(`🌊 ${lake.name} har godkänts och sparats permanent!`);
   };
 
   const handleDeleteApprovedLake = async (id, name) => {
@@ -907,6 +953,25 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
   const handleDeleteSuggestion = async (id) => {
     await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(id).delete();
     showToast("Sjöförslag borttaget.");
+  };
+
+  const startEditLake = (lake) => {
+    setEditingLake(lake);
+    setEditName(lake.name || '');
+    setEditFish(lake.fish || '');
+    setEditRules(lake.rules || '');
+  };
+
+  const handleSaveLakeEdit = async (e) => {
+    e.preventDefault();
+    if (!editingLake) return;
+    await db.collection('artifacts').doc(appId).collection('approved_lakes').doc(editingLake.id).update({
+      name: editName,
+      fish: editFish,
+      rules: editRules
+    });
+    setEditingLake(null);
+    showToast("Sjö-information uppdaterad!");
   };
 
   return (
@@ -944,7 +1009,7 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
           <div className="bg-slate-900 text-white p-3.5 rounded-2xl space-y-3 text-xs border border-amber-500/30">
             <div className="flex justify-between items-center">
               <p className="font-bold text-amber-400 text-sm">🛡️ Admin-panel</p>
-              <button onClick={() => { setIsAdmin(false); localStorage.removeItem('bitetracker_admin'); }} className="text-[10px] text-slate-400 underline">Logga ut admin</button>
+              <button onClick={() => { setIsAdmin(false); localStorage.removeItem('bitetracker_admin'); showToast("Utloggad från Admin"); }} className="text-[10px] text-slate-400 underline">Logga ut admin</button>
             </div>
 
             {/* VÄNTANDE SJÖAR */}
@@ -962,15 +1027,21 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
               ))}
             </div>
 
-            {/* GODKÄNDA SJÖAR */}
+            {/* GODKÄNDA SJÖAR MED REDIGERING */}
             <div className="space-y-1.5 pt-2 border-t border-slate-800">
-              <p className="font-bold text-emerald-400 text-[11px]">✅ Godkända Sjöar på Kartan ({approvedLakes.length}):</p>
+              <p className="font-bold text-emerald-400 text-[11px]">✅ Alla Godkända Sjöar ({approvedLakes.length}):</p>
               {approvedLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga godkända sjöar ännu.</p> : (
-                <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
+                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
                   {approvedLakes.map(al => (
-                    <div key={al.id} className="bg-slate-800 p-2 rounded-xl flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-slate-200">🌊 {al.name}</span>
-                      <button onClick={() => handleDeleteApprovedLake(al.id, al.name)} className="text-red-400 font-bold px-2 py-0.5 rounded hover:bg-red-950">Ta bort</button>
+                    <div key={al.id} className="bg-slate-800 p-2 rounded-xl border border-slate-700 space-y-1 text-[11px]">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-teal-300">🌊 {al.name}</span>
+                        <div className="flex gap-1">
+                          <button onClick={() => startEditLake(al)} className="text-amber-400 font-bold px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600">✏️ Ändra</button>
+                          <button onClick={() => handleDeleteApprovedLake(al.id, al.name)} className="text-red-400 font-bold px-1.5 py-0.5 rounded bg-slate-700 hover:bg-red-950">Ta bort</button>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-400">Fisk: {al.fish || 'Diverse'}</p>
                     </div>
                   ))}
                 </div>
@@ -979,6 +1050,31 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
           </div>
         )}
       </div>
+
+      {/* MODAL FÖR ATT REDIGERA EN SJÖ */}
+      {editingLake && (
+        <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
+          <form onSubmit={handleSaveLakeEdit} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3 text-slate-800">
+            <h3 className="font-bold text-base text-slate-900">✏️ Redigera Sjö-info</h3>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block">Sjöns namn</label>
+              <input type="text" value={editName} onChange={e => setEditName(e.target.value)} required className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs" />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block">Fiskarter</label>
+              <input type="text" value={editFish} onChange={e => setEditFish(e.target.value)} className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs" />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block">Regler / Info</label>
+              <textarea value={editRules} onChange={e => setEditRules(e.target.value)} className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs h-16 resize-none" />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button type="button" onClick={() => setEditingLake(null)} className="flex-1 bg-slate-100 p-2.5 rounded-xl text-xs font-bold">Avbryt</button>
+              <button type="submit" className="flex-1 bg-teal-700 text-white p-2.5 rounded-xl text-xs font-bold shadow">Spara Ändringar</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {showPinModal && (
         <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
@@ -1018,12 +1114,12 @@ function FiskeAppen() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(true);
   const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
   const [toast, setToast] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bitetracker_admin') === 'true');
 
   const isPro = user && !user.isAnonymous;
   const t = (key) => translations['sv']?.[key] || key;
   const currentTheme = themes[appTheme] || themes.blue;
 
-  // Hjälpfunktion för att visa in-app meddelande istället för alert
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => { setToast(null); }, 3500);
@@ -1079,7 +1175,7 @@ function FiskeAppen() {
       </header>
 
       <main className="flex-1 overflow-y-auto pb-20">
-        {activeTab === 'feed' && <FeedView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} setShowAuthModal={setShowAuthModal} showToast={showToast} t={t} user={user}/>}
+        {activeTab === 'feed' && <FeedView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} setShowAuthModal={setShowAuthModal} showToast={showToast} t={t} user={user} isAdmin={isAdmin}/>}
         {activeTab === 'compete' && <CompetitionView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} showToast={showToast} t={t} user={user} catches={catches}/>}
         {activeTab === 'map' && <MapView currentTheme={currentTheme} isPro={isPro} showToast={showToast} user={user}/>}
         {activeTab === 'log' && <CatchLogView currentTheme={currentTheme} profile={profile} showToast={showToast} t={t} user={user}/>}
@@ -1099,7 +1195,7 @@ function FiskeAppen() {
       <ToastNotification toast={toast} />
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} user={user} currentTheme={currentTheme} showToast={showToast} />
-      <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} user={user} profile={profile} appTheme={appTheme} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} currentTheme={currentTheme} isPro={isPro} showToast={showToast} />
+      <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} user={user} profile={profile} appTheme={appTheme} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} currentTheme={currentTheme} isPro={isPro} showToast={showToast} isAdmin={isAdmin} setIsAdmin={setIsAdmin} />
       <WelcomeProModal isOpen={showWelcomeModal && user?.isAnonymous} onClose={() => setShowWelcomeModal(false)} onLoginClick={() => setShowAuthModal(true)} />
     </div>
   );
