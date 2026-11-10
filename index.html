@@ -34,8 +34,8 @@
             <div class="flex items-center gap-3">
                 <a href="#funktioner" class="hidden md:block text-xs font-semibold text-slate-600 hover:text-slate-900 transition mr-2">Funktioner</a>
                 
-                <!-- KNAPP: INSTALLERA APP -->
-                <button type="button" class="install-app-btn bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
+                <!-- KNAPP: ÖPPNA NEDLADDNINGSMODAL -->
+                <button onclick="showDownloadOptions()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
                     <span>📲 Installera</span>
                 </button>
 
@@ -69,7 +69,7 @@
                     🚀 Starta i webbläsaren
                 </a>
                 
-                <button type="button" class="install-app-btn w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-md hover:scale-105 active:scale-95 transition text-center flex items-center justify-center gap-2">
+                <button onclick="showDownloadOptions()" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-md hover:scale-105 active:scale-95 transition text-center flex items-center justify-center gap-2">
                     <span>📲 Installera Appen</span>
                 </button>
             </div>
@@ -235,7 +235,7 @@
                 <a href="https://bitetrackerwebb.vercel.app/app.html" class="px-8 py-4 rounded-2xl bg-teal-700 hover:bg-teal-800 text-white font-black text-base shadow-lg shadow-teal-700/20 hover:scale-105 active:scale-95 transition">
                     🚀 Öppna BiteTracker Pro
                 </a>
-                <button type="button" class="install-app-btn px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-base shadow-md hover:scale-105 active:scale-95 transition flex items-center gap-2">
+                <button onclick="showDownloadOptions()" class="px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-base shadow-md hover:scale-105 active:scale-95 transition flex items-center gap-2">
                     <span>📲 Installera Appen</span>
                 </button>
             </div>
@@ -253,30 +253,97 @@
         </div>
     </footer>
 
-    <!-- SKRIPT FÖR PWA INSTALLATION -->
+    <!-- NEDLADDNINGSMODAL (EXAKT FRÅN INDEX 12) -->
+    <div id="downloadModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 p-8 rounded-3xl max-w-md w-full text-center space-y-6 shadow-2xl relative">
+            <button onclick="hideDownloadOptions()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 p-2 rounded-full w-8 h-8 flex items-center justify-center font-bold">✕</button>
+            
+            <div class="w-16 h-16 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">📱</div>
+            
+            <div class="space-y-2">
+                <h3 class="text-2xl font-bold text-slate-900">Välj nedladdning</h3>
+                <p class="text-slate-600 text-sm">Välj hur du vill hämta eller installera BiteTracker.</p>
+            </div>
+
+            <div class="space-y-3">
+                <!-- Google Play Store -->
+                <div onclick="showWipAlert('Google Play Store-appen är under utveckling och kommer snart!')" class="flex items-center justify-center gap-3 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold p-4 rounded-2xl transition shadow cursor-pointer">
+                    <span class="text-2xl">▶</span>
+                    <div class="text-left">
+                        <p class="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">Kommer snart</p>
+                        <p class="text-sm font-bold">Google Play Store</p>
+                    </div>
+                </div>
+
+                <!-- Direktinstallationsknapp -->
+                <button id="installAppBtn" onclick="installApp()" class="flex items-center justify-center gap-3 w-full bg-teal-700 hover:bg-teal-800 text-white font-bold p-4 rounded-2xl transition shadow">
+                    <span class="text-2xl">⚡</span>
+                    <div class="text-left">
+                        <p class="text-[10px] text-teal-200 uppercase tracking-wider font-semibold">Direkt i mobilen / datorn</p>
+                        <p class="text-sm font-bold">Installera som App</p>
+                    </div>
+                </button>
+
+                <!-- Work in progress alternativ -->
+                <div onclick="showWipAlert('Denna nedladdningsmetod är för närvarande work in progress.')" class="flex items-center justify-center gap-3 w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold p-4 rounded-2xl border border-slate-200 cursor-pointer transition">
+                    <span class="text-2xl">⏳</span>
+                    <div class="text-left">
+                        <p class="text-[10px] text-amber-600 uppercase tracking-wider font-semibold">Alternativ nedladdning</p>
+                        <p class="text-sm font-bold">Work in Progress</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WORK IN PROGRESS / HJÄLPMODAL -->
+    <div id="wipModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 p-8 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">🚧</div>
+            <h3 class="text-xl font-bold text-slate-900">Information</h3>
+            <p id="wipText" class="text-slate-600 text-xs leading-relaxed text-left">Meddelande...</p>
+            <button onclick="hideWipAlert()" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold py-3 rounded-xl transition text-sm shadow">
+                Okej
+            </button>
+        </div>
+    </div>
+
+    <!-- INSTALLATIONSSKRIPT (FRÅN INDEX 12) -->
     <script>
         let deferredPrompt;
-        const installBtns = document.querySelectorAll('.install-app-btn');
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
         });
 
-        installBtns.forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    if (outcome === 'accepted') {
-                        console.log('Appen installerades!');
-                    }
-                    deferredPrompt = null;
-                } else {
-                    alert('För att installera appen:\n\n• På iPhone/Safari: Tryck på Dela-knappen (fyrkant med pil upp) och välj "Lägg till på hemskärmen".\n\n• På Android/Chrome: Tryck på tre punkter i menyn och välj "Installera app" eller "Lägg till på startskärmen".');
+        async function installApp() {
+            if (deferredPrompt) {
+                hideDownloadOptions();
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('Användaren installerade appen');
                 }
-            });
-        });
+                deferredPrompt = null;
+            } else {
+                showWipAlert('För att installera appen:\n\n• På iPhone/Safari: Tryck på Dela-knappen (fyrkant med pil upp) och välj "Lägg till på hemskärmen".\n\n• På Android/Chrome: Tryck på tre punkter i menyn och välj "Installera app" eller "Lägg till på startskärmen".\n\n• På datorn: Klicka på installera-ikonen till höger i adressfältet.');
+            }
+        }
+
+        function showDownloadOptions() {
+            document.getElementById('downloadModal').classList.remove('hidden');
+        }
+        function hideDownloadOptions() {
+            document.getElementById('downloadModal').classList.add('hidden');
+        }
+        function showWipAlert(text) {
+            document.getElementById('wipText').innerText = text;
+            document.getElementById('wipModal').classList.remove('hidden');
+        }
+        function hideWipAlert() {
+            document.getElementById('wipModal').classList.add('hidden');
+        }
     </script>
 </body>
 </html>
