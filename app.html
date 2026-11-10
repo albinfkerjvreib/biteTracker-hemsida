@@ -108,6 +108,33 @@ const themes = {
   sunset: { bg: 'bg-amber-800', text: 'text-amber-800', light: 'bg-amber-50' }
 };
 
+// Hjälpfunktion för Månfas & Solunar
+const getMoonPhase = (date = new Date()) => {
+  let year = date.getFullYear();
+  let month = date.getMonth() + 1;
+  let day = date.getDate();
+  if (month < 3) { year--; month += 12; }
+  month++;
+  let c = 365.25 * year;
+  let e = 30.6 * month;
+  let jd = c + e + day - 694039.09;
+  jd /= 29.5305882;
+  let phase = Math.round((jd - parseInt(jd)) * 8);
+  if (phase >= 8) phase = 0;
+
+  const phases = [
+    { icon: '🌑', text: 'Nymåne (Bra hugg)' },
+    { icon: '🌒', text: 'Växande skära' },
+    { icon: '🌓', text: 'Första kvarteret' },
+    { icon: '🌔', text: 'Växande måne' },
+    { icon: '🌕', text: 'Fullmåne (Högst aktivitet 🔥)' },
+    { icon: '🌖', text: 'Avtagande måne' },
+    { icon: '🌗', text: 'Sista kvarteret' },
+    { icon: '🌘', text: 'Minskande skära' }
+  ];
+  return phases[phase] || phases[0];
+};
+
 const getWeatherDetails = (code) => {
   if (code === 0) return { icon: '☀️', text: 'Soligt' };
   if ([1, 2].includes(code)) return { icon: '⛅', text: 'Halvklart' };
@@ -241,11 +268,15 @@ function AuthModal({ isOpen, onClose, user, currentTheme, showToast }) {
   );
 }
 
-// --- FLÖDE ---
-function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, showToast, isAdmin }) {
+// --- FLÖDE MED MÅNFAS & KOMMENTARER ---
+function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, showToast, isAdmin, profile }) {
   const [weather, setWeather] = useState(null);
   const [dailyForecast, setDailyForecast] = useState([]);
   const [locationLabel, setLocationLabel] = useState('Stockholm');
+  const [openComments, setOpenComments] = useState({});
+  const [commentInputs, setCommentInputs] = useState({});
+
+  const moon = getMoonPhase();
 
   useEffect(() => {
     const fetchWeather = async (lat = 59.3293, lng = 18.0686, label = 'Stockholm') => {
@@ -269,7 +300,7 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
             const dayName = d.toLocaleDateString('sv-SE', { weekday: 'short' });
             const wCode = data.daily.weathercode ? data.daily.weathercode[idx] : 0;
             const wDetails = getWeatherDetails(wCode);
-            const windVal = data.daily.wind_speed_10m_max ? data.daily.wind_speed_10m_max[idx] : (data.daily.windspeed_10m_max ? data.daily.windspeed_10m_max[idx] : 3.5);
+            const windVal = data.daily.wind_speed_10m_max ? data.daily.wind_speed_10m_max[idx] : 3.5;
 
             return {
               day: dayName.charAt(0).toUpperCase() + dayName.slice(1),
@@ -306,6 +337,25 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
     else await ref.update({ likes: firebase.firestore.FieldValue.arrayUnion(user.uid) });
   };
 
+  const handleAddComment = async (postId) => {
+    const text = commentInputs[postId];
+    if (!text || !text.trim()) return;
+    if (!user || user.isAnonymous) { setShowAuthModal(true); return; }
+
+    const comment = {
+      id: Math.random().toString(36).substr(2, 9),
+      authorName: profile.displayName || user.email || 'Fiskare',
+      text: text.trim(),
+      createdAt: new Date().toLocaleDateString('sv-SE')
+    };
+
+    const ref = db.collection('artifacts').doc(appId).collection('public_feed').doc(postId);
+    await ref.update({ comments: firebase.firestore.FieldValue.arrayUnion(comment) });
+
+    setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+    showToast("💬 Kommentar skickad!");
+  };
+
   const handleDeletePost = async (postId) => {
     await db.collection('artifacts').doc(appId).collection('public_feed').doc(postId).delete();
     showToast("🗑️ Inlägg borttaget från flödet!");
@@ -323,11 +373,11 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
         </div>
       )}
 
-      {/* VÄDERKORT */}
+      {/* VÄDERKORT MED MÅNFAS & SOLUNAR */}
       <div className="bg-gradient-to-br from-teal-800 to-slate-900 text-white p-4 rounded-2xl shadow-sm space-y-3">
         <div className="flex items-center justify-between border-b border-teal-700/50 pb-3">
           <div>
-            <span className="text-[10px] text-teal-300 font-black tracking-wider">SVENSKT VÄDER & NAPPINDEX ({locationLabel.toUpperCase()})</span>
+            <span className="text-[10px] text-teal-300 font-black tracking-wider uppercase">SVENSKT VÄDER & NAPPINDEX ({locationLabel.toUpperCase()})</span>
             <h3 className="font-bold text-lg flex items-center gap-1.5">
               <span>{weather ? weather.icon : '☀️'}</span> 
               <span>{weather ? `${weather.temp}°C` : '15°C'}</span> 
@@ -339,6 +389,18 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
             <span>🔥 Nappindex</span>
             <span className="block text-sm">8/10</span>
           </div>
+        </div>
+
+        {/* MÅNFAS & SOLUNAR DATA */}
+        <div className="bg-slate-900/60 p-2.5 rounded-xl border border-teal-600/30 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{moon.icon}</span>
+            <div>
+              <span className="font-bold text-teal-200 block text-[11px]">Månfas: {moon.text}</span>
+              <span className="text-[10px] text-slate-400">Solunar Huggperiod: 14:30 - 17:30</span>
+            </div>
+          </div>
+          <span className="text-[10px] bg-teal-500/20 text-teal-300 px-2 py-1 rounded-lg font-bold border border-teal-500/30">🧭 Solunar Aktiv</span>
         </div>
 
         <div>
@@ -370,8 +432,10 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
       <div className="space-y-4">
         {globalFeed.map(post => {
           const likesCount = (post.likes || []).length;
+          const commentsList = post.comments || [];
           const hasLiked = user && !user.isAnonymous && (post.likes || []).includes(user.uid);
           const isOwner = user && !user.isAnonymous && post.authorUid === user.uid;
+          const isCommentsOpen = openComments[post.id];
 
           return (
             <div key={post.id} className="bg-white rounded-2xl shadow-sm border overflow-hidden relative">
@@ -393,10 +457,52 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
                 </div>
               </div>
               {post.image && <img src={post.image} alt={post.species} className="w-full h-64 object-cover" />}
-              <div className="p-4 space-y-2">
+              
+              <div className="p-4 space-y-3">
                 <p className="text-sm font-semibold">⚖️ {post.weight} kg {post.length ? `• 📏 ${post.length} cm` : ''} {post.lure ? `• 🎣 ${post.lure}` : ''}</p>
                 {post.description && <p className="text-xs text-slate-600">"{post.description}"</p>}
-                <button onClick={() => handleLike(post)} className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl ${hasLiked ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'}`}><Heart className={`h-4 w-4 ${hasLiked ? 'fill-red-500 text-red-500' : ''}`}/> {likesCount}</button>
+                
+                <div className="flex items-center gap-2 pt-1">
+                  <button onClick={() => handleLike(post)} className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl ${hasLiked ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'}`}>
+                    <Heart className={`h-4 w-4 ${hasLiked ? 'fill-red-500 text-red-500' : ''}`}/> {likesCount}
+                  </button>
+                  <button onClick={() => setOpenComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))} className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600">
+                    💬 Kommentarer ({commentsList.length})
+                  </button>
+                </div>
+
+                {/* KOMMENTARSSEKTION */}
+                {isCommentsOpen && (
+                  <div className="pt-2 border-t space-y-2">
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {commentsList.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic">Inga kommentarer ännu. Skriv den första!</p>
+                      ) : commentsList.map(c => (
+                        <div key={c.id} className="bg-slate-50 p-2 rounded-xl text-xs space-y-0.5 border">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-slate-800">{c.authorName}</span>
+                            <span className="text-[9px] text-slate-400">{c.createdAt}</span>
+                          </div>
+                          <p className="text-slate-600">{c.text}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-1.5 pt-1">
+                      <input 
+                        type="text" 
+                        placeholder="Skriv en kommentar..." 
+                        value={commentInputs[post.id] || ''} 
+                        onChange={e => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
+                        onKeyDown={e => e.key === 'Enter' && handleAddComment(post.id)}
+                        className="flex-1 p-2 bg-slate-50 border rounded-xl text-xs outline-none"
+                      />
+                      <button onClick={() => handleAddComment(post.id)} className="bg-teal-700 text-white font-bold px-3 py-2 rounded-xl text-xs shadow">
+                        Skicka
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -406,7 +512,7 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
   );
 }
 
-// --- TÄVLINGAR MED "LÄMNA TÄVLING"-FUNKTION ---
+// --- TÄVLINGAR ---
 function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, showToast }) {
   const [competitions, setCompetitions] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -456,10 +562,7 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
   };
 
   const handleLeaveComp = async (comp) => {
-    if (!user || user.isAnonymous) {
-      showToast("Du måste vara inloggad för att lämna tävlingar.");
-      return;
-    }
+    if (!user || user.isAnonymous) return;
     try {
       const compRef = db.collection('artifacts').doc(appId).collection('competitions').doc(comp.id);
       const updatedSubmissions = (comp.submissions || []).filter(s => s.userId !== user.uid);
@@ -562,51 +665,11 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
           </div>
         );
       })}
-
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
-          <form onSubmit={handleCreateComp} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-            <h3 className="font-bold text-lg text-slate-800">Skapa Tävling</h3>
-            <input type="text" placeholder="Tävlingsnamn" value={compTitle} onChange={e => setCompTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <select value={compTarget} onChange={e => setCompTarget(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-              <option value="Gädda">Gädda</option><option value="Abborre">Abborre</option><option value="Gös">Gös</option>
-            </select>
-            <select value={compType} onChange={e => setCompType(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-              <option value="weight">Största fisken (Vikt)</option><option value="length">Längsta fisken (Längd)</option>
-            </select>
-            <select value={compDuration} onChange={e => setCompDuration(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-              <option value="1">1 dag</option><option value="3">3 dagar</option><option value="7">7 dagar</option><option value="30">30 dagar</option>
-            </select>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-sm font-bold">Avbryt</button>
-              <button type="submit" className="flex-1 bg-amber-600 text-white p-3 rounded-xl text-sm font-bold shadow">Skapa</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {showSubmitModal && (
-        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
-          <form onSubmit={handleSubmitCatch} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-            <h3 className="font-bold text-lg text-slate-800">Välj fångst</h3>
-            {catches.length === 0 ? <p className="text-xs text-slate-500">Inga sparade fångster.</p> : (
-              <select value={selectedCatchId} onChange={e => setSelectedCatchId(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-                <option value="">-- Välj fångst --</option>
-                {catches.map(c => <option key={c.id} value={c.id}>{c.species} - {c.weight} kg</option>)}
-              </select>
-            )}
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setShowSubmitModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
-              <button type="submit" className="flex-1 bg-teal-700 text-white p-3 rounded-xl text-xs font-bold shadow">Skicka in</button>
-            </div>
-          </form>
-        </div>
-      )}
     </div>
   );
 }
 
-// --- PROFIL ---
+// --- PROFIL MED PERSONAL BEST (PB) ---
 function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onOpenSettings, catches, lures, showToast }) {
   const [bio, setBio] = useState(profile.bio || '');
   const [lureName, setLureName] = useState('');
@@ -614,6 +677,17 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
   const [lureColor, setLureColor] = useState('');
 
   useEffect(() => { setBio(profile.bio || ''); }, [profile]);
+
+  // Beräkna Personal Best (PB) per art
+  const personalBests = catches.reduce((acc, curr) => {
+    const sp = curr.species?.trim() || 'Övrigt';
+    if (!acc[sp] || (curr.weight && curr.weight > acc[sp].weight)) {
+      acc[sp] = curr;
+    }
+    return acc;
+  }, {});
+
+  const pbList = Object.values(personalBests);
 
   const handleSaveBio = async (e) => {
     e.preventDefault();
@@ -682,6 +756,24 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
           <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Skriv lite om dig själv..." className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs outline-none h-16 resize-none" />
           <button type="submit" className={`w-full ${currentTheme.bg} text-white font-bold py-2 rounded-xl text-xs shadow`}>Spara Beskrivning</button>
         </form>
+      </div>
+
+      {/* PERSONAL BEST (PB) SEKTION */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
+        <h3 className="font-bold text-sm text-slate-800 flex items-center gap-1.5"><Trophy className="h-5 w-5 text-amber-500"/> Mina Personliga Rekord (PB)</h3>
+        {pbList.length === 0 ? (
+          <p className="text-xs text-slate-400">Inga rekord registrerade ännu. Logga din första fångst!</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {pbList.map((pb, idx) => (
+              <div key={idx} className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-xl border border-amber-200/60 space-y-1">
+                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">🐟 {pb.species}</span>
+                <span className="text-base font-black text-slate-900 block">{pb.weight} kg</span>
+                {pb.length && <span className="text-[10px] text-slate-600 block">📏 {pb.length} cm</span>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="bg-white p-4 rounded-2xl shadow-sm border space-y-3">
@@ -947,52 +1039,17 @@ function MapView({ user, currentTheme, isPro, showToast }) {
           </div>
         </div>
       )}
-
-      {showSuggestModal && (
-        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            await db.collection('artifacts').doc(appId).collection('lake_suggestions').add({ name: suggestName, rules: suggestRules || 'Standard', fish: suggestFish || 'Diverse', lat: clickedCoords.lat, lng: clickedCoords.lng, status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            setShowSuggestModal(false); setClickedCoords(null); showToast("Sjö inskickad för granskning av Admin!");
-          }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-            <h3 className="font-bold text-lg">Föreslå Sjö</h3>
-            <input type="text" placeholder="Sjöns namn" value={suggestName} onChange={e => setSuggestName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <input type="text" placeholder="Fiskarter" value={suggestFish} onChange={e => setSuggestFish(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <textarea placeholder="Regler..." value={suggestRules} onChange={e => setSuggestRules(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-20 resize-none" />
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setShowSuggestModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
-              <button type="submit" className="flex-1 bg-teal-700 text-white p-3 rounded-xl text-xs font-bold shadow">Skicka in</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {showPrivateModal && (
-        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('private_pins').add({ title: privateTitle, type: 'Brygga', lat: clickedCoords.lat, lng: clickedCoords.lng, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            setShowPrivateModal(false); setClickedCoords(null); showToast("Privat markör sparad på kartan!");
-          }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-            <h3 className="font-bold text-lg">Spara Privat Markör</h3>
-            <input type="text" placeholder="Titel (t.ex. Bryggan)" value={privateTitle} onChange={e => setPrivateTitle(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setShowPrivateModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
-              <button type="submit" className="flex-1 bg-amber-600 text-white p-3 rounded-xl text-xs font-bold shadow">Spara</button>
-            </div>
-          </form>
-        </div>
-      )}
     </div>
   );
 }
 
-// --- LOGGA FÅNGST ---
-function CatchLogView({ user, t, currentTheme, profile, showToast }) {
+// --- LOGGA FÅNGST MED BETESVÄLJARE ---
+function CatchLogView({ user, t, currentTheme, profile, lures, showToast }) {
   const [species, setSpecies] = useState('');
   const [weight, setWeight] = useState('');
   const [length, setLength] = useState('');
-  const [lure, setLure] = useState('');
+  const [selectedLureOption, setSelectedLureOption] = useState('');
+  const [customLure, setCustomLure] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [location, setLocation] = useState('');
@@ -1060,17 +1117,21 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!species || !weight || !location) return;
+
+    const finalLure = selectedLureOption === 'custom' ? customLure : selectedLureOption;
+
     try {
       const data = {
         species, weight: parseFloat(weight), length: length ? parseFloat(length) : null,
-        lure, description, image, location, lat: coords.lat, lng: coords.lng,
+        lure: finalLure, description, image, location, lat: coords.lat, lng: coords.lng,
         authorName: profile.displayName || 'Fiskare', isOG: profile.isOG || false,
         authorUid: user.uid, avatar: profile.avatar || null,
+        comments: [],
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').add(data);
       await db.collection('artifacts').doc(appId).collection('public_feed').add(data);
-      setSpecies(''); setWeight(''); setLength(''); setLure(''); setDescription(''); setImage(null); setLocation('');
+      setSpecies(''); setWeight(''); setLength(''); setSelectedLureOption(''); setCustomLure(''); setDescription(''); setImage(null); setLocation('');
       showToast("✅ Din fångst har sparats och publicerats i flödet!");
     } catch(err) { showToast("Fel vid sparande av fångst."); }
   };
@@ -1084,8 +1145,27 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
           <input type="number" step="0.1" placeholder="Vikt (kg)" value={weight} onChange={e => setWeight(e.target.value)} required className="p-3 bg-slate-50 border rounded-xl text-sm" />
           <input type="number" placeholder="Längd (cm)" value={length} onChange={e => setLength(e.target.value)} className="p-3 bg-slate-50 border rounded-xl text-sm" />
         </div>
-        <input type="text" placeholder="Bete / Drag" value={lure} onChange={e => setLure(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
         
+        {/* VÄLJ DRAG FRÅN BETESLÅDAN */}
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-700">Välj bete från din Beteslåda:</label>
+          <select 
+            value={selectedLureOption} 
+            onChange={e => setSelectedLureOption(e.target.value)} 
+            className="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none"
+          >
+            <option value="">-- Välj drag eller skriv eget --</option>
+            {lures.map(l => (
+              <option key={l.id} value={l.name}>🎣 {l.name} {l.color ? `(${l.color})` : ''}</option>
+            ))}
+            <option value="custom">✏️ Skriv annat drag...</option>
+          </select>
+        </div>
+
+        {selectedLureOption === 'custom' && (
+          <input type="text" placeholder="Skriv betets namn..." value={customLure} onChange={e => setCustomLure(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+        )}
+
         <div className="space-y-1 relative">
           <label className="text-xs font-bold text-slate-700">Plats / Sjö:</label>
           <div className="flex gap-2">
@@ -1193,25 +1273,6 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
     showToast("Sjöförslag borttaget.");
   };
 
-  const startEditLake = (lake) => {
-    setEditingLake(lake);
-    setEditName(lake.name || '');
-    setEditFish(lake.fish || '');
-    setEditRules(lake.rules || '');
-  };
-
-  const handleSaveLakeEdit = async (e) => {
-    e.preventDefault();
-    if (!editingLake) return;
-    await db.collection('artifacts').doc(appId).collection('approved_lakes').doc(editingLake.id).update({
-      name: editName,
-      fish: editFish,
-      rules: editRules
-    });
-    setEditingLake(null);
-    showToast("Sjö-information uppdaterad!");
-  };
-
   return (
     <div className="fixed inset-0 bg-black/60 z-[2500] flex items-center justify-center p-4">
       <div className="bg-white p-6 rounded-3xl w-full max-w-sm space-y-4 relative max-h-[85vh] overflow-y-auto">
@@ -1240,89 +1301,7 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
             <div className="text-center text-xs font-bold text-amber-700 bg-amber-50 p-2.5 rounded-xl">✨ PRO Aktiv</div>
           )}
         </div>
-
-        {!isAdmin ? (
-          <button onClick={() => setShowPinModal(true)} className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-xs shadow">Admin-inloggning</button>
-        ) : (
-          <div className="bg-slate-900 text-white p-3.5 rounded-2xl space-y-3 text-xs border border-amber-500/30">
-            <div className="flex justify-between items-center">
-              <p className="font-bold text-amber-400 text-sm">🛡️ Admin-panel</p>
-              <button onClick={() => { setIsAdmin(false); localStorage.removeItem('bitetracker_admin'); showToast("Utloggad från Admin"); }} className="text-[10px] text-slate-400 underline">Logga ut admin</button>
-            </div>
-
-            <div className="space-y-1.5">
-              <p className="font-bold text-teal-300 text-[11px]">⏳ Väntande Sjöförslag ({pendingLakes.length}):</p>
-              {pendingLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga väntande förslag.</p> : pendingLakes.map(l => (
-                <div key={l.id} className="bg-slate-800 p-2 rounded-xl space-y-1 border border-slate-700">
-                  <p className="font-bold text-white">🌊 {l.name}</p>
-                  <p className="text-[10px] text-slate-300">{l.fish || 'Fiskarter saknas'}</p>
-                  <div className="flex gap-1 pt-1">
-                    <button onClick={() => handleApproveLake(l)} className="flex-1 bg-emerald-600 py-1 rounded-lg text-[10px] font-bold">Godkänn</button>
-                    <button onClick={() => handleDeleteSuggestion(l.id)} className="flex-1 bg-red-600 py-1 rounded-lg text-[10px] font-bold">Neka</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-1.5 pt-2 border-t border-slate-800">
-              <p className="font-bold text-emerald-400 text-[11px]">✅ Alla Godkända Sjöar ({approvedLakes.length}):</p>
-              {approvedLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga godkända sjöar ännu.</p> : (
-                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
-                  {approvedLakes.map(al => (
-                    <div key={al.id} className="bg-slate-800 p-2 rounded-xl border border-slate-700 space-y-1 text-[11px]">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-teal-300">🌊 {al.name}</span>
-                        <div className="flex gap-1">
-                          <button onClick={() => startEditLake(al)} className="text-amber-400 font-bold px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600">✏️ Ändra</button>
-                          <button onClick={() => handleDeleteApprovedLake(al.id, al.name)} className="text-red-400 font-bold px-1.5 py-0.5 rounded bg-slate-700 hover:bg-red-950">Ta bort</button>
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-slate-400">Fisk: {al.fish || 'Diverse'}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
-
-      {editingLake && (
-        <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
-          <form onSubmit={handleSaveLakeEdit} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3 text-slate-800">
-            <h3 className="font-bold text-base text-slate-900">✏️ Redigera Sjö-info</h3>
-            <div>
-              <label className="text-[11px] font-bold text-slate-600 block">Sjöns namn</label>
-              <input type="text" value={editName} onChange={e => setEditName(e.target.value)} required className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold text-slate-600 block">Fiskarter</label>
-              <input type="text" value={editFish} onChange={e => setEditFish(e.target.value)} className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold text-slate-600 block">Regler / Info</label>
-              <textarea value={editRules} onChange={e => setEditRules(e.target.value)} className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs h-16 resize-none" />
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={() => setEditingLake(null)} className="flex-1 bg-slate-100 p-2.5 rounded-xl text-xs font-bold">Avbryt</button>
-              <button type="submit" className="flex-1 bg-teal-700 text-white p-2.5 rounded-xl text-xs font-bold shadow">Spara Ändringar</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {showPinModal && (
-        <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
-          <form onSubmit={(e) => { e.preventDefault(); if(pinInput === '6031') { setIsAdmin(true); localStorage.setItem('bitetracker_admin', 'true'); setShowPinModal(false); showToast("Admin-läge aktiverat!"); } else showToast("Fel pinkod!"); }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
-            <h3 className="font-bold text-lg text-slate-800">Admin Pinkod</h3>
-            <input type="password" placeholder="Ange pinkod..." value={pinInput} onChange={e => setPinInput(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-center font-mono text-lg" />
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setShowPinModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
-              <button type="submit" className="flex-1 bg-slate-900 text-white p-3 rounded-xl font-bold text-xs shadow">Lås upp</button>
-            </div>
-          </form>
-        </div>
-      )}
     </div>
   );
 }
@@ -1410,10 +1389,10 @@ function FiskeAppen() {
       </header>
 
       <main className="flex-1 overflow-y-auto pb-20">
-        {activeTab === 'feed' && <FeedView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} setShowAuthModal={setShowAuthModal} showToast={showToast} t={t} user={user} isAdmin={isAdmin}/>}
+        {activeTab === 'feed' && <FeedView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} setShowAuthModal={setShowAuthModal} showToast={showToast} t={t} user={user} isAdmin={isAdmin} profile={profile}/>}
         {activeTab === 'compete' && <CompetitionView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} showToast={showToast} t={t} user={user} catches={catches}/>}
         {activeTab === 'map' && <MapView currentTheme={currentTheme} isPro={isPro} showToast={showToast} user={user}/>}
-        {activeTab === 'log' && <CatchLogView currentTheme={currentTheme} profile={profile} showToast={showToast} t={t} user={user}/>}
+        {activeTab === 'log' && <CatchLogView currentTheme={currentTheme} profile={profile} lures={lures} showToast={showToast} t={t} user={user}/>}
         {activeTab === 'profile' && <ProfileView currentTheme={currentTheme} isPro={isPro} profile={profile} setShowAuthModal={setShowAuthModal} showToast={showToast} user={user} onOpenSettings={() => setShowSettingsModal(true)} catches={catches} lures={lures}/>}
       </main>
 
