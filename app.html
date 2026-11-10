@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -179,7 +180,7 @@ function ProBenefitsList() {
       <ul className="space-y-1 text-[11px] text-slate-300">
         <li className="flex items-center gap-1.5"><span>📅</span> 7-dagars äkta svensk väderprognos & nappindex</li>
         <li className="flex items-center gap-1.5"><span>🔥</span> Personlig Värmekarta (Heatmap) över fångster</li>
-        <li className="flex items-center gap-1.5"><span>🎫</span> Direktlänkar till iFiske för köp av fiskekort</li>
+        <li className="flex items-center gap-1.5"><span>🎫</span> Info om fiskekort & gratisvatten</li>
         <li className="flex items-center gap-1.5"><span>🏆</span> Skapa & delta i privata fisketävlingar</li>
         <li className="flex items-center gap-1.5"><span>📦</span> Permanent sparande av beteslåda & fångster</li>
         <li className="flex items-center gap-1.5"><span>🎖️</span> Exklusiv OG-medlemsbadge på profilen</li>
@@ -957,9 +958,11 @@ function MapView({ user, currentTheme, isPro, showToast, catches }) {
   const [showSuggestModal, setShowSuggestModal] = useState(false);
   const [showPrivateModal, setShowPrivateModal] = useState(false);
 
+  // Nya state för att föreslå sjö
   const [suggestName, setSuggestName] = useState('');
   const [suggestRules, setSuggestRules] = useState('');
   const [suggestFish, setSuggestFish] = useState('');
+  const [suggestIsFree, setSuggestIsFree] = useState(false); 
   const [privateTitle, setPrivateTitle] = useState('');
 
   useEffect(() => {
@@ -1103,17 +1106,27 @@ function MapView({ user, currentTheme, isPro, showToast, catches }) {
 
           <div className="bg-gradient-to-br from-teal-800 to-teal-900 text-white p-4 rounded-2xl shadow-md space-y-3">
             <span className="text-[10px] font-bold text-teal-300 uppercase tracking-widest block">🎫 FISKEKORT & TILLSTÅND</span>
-            <p className="text-xs text-slate-200 leading-relaxed">
-              Köp ditt digitala fiskekort direkt i mobilen eller kontrollera lokala fiskeregler via iFiske.
-            </p>
-            <a 
-              href={selectedLake.ifiskeUrl || `https://www.ifiske.se/index.php/sv/sok?q=${encodeURIComponent(selectedLake.name)}`} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="inline-flex items-center justify-center w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-3 rounded-xl text-xs shadow-lg transition transform active:scale-95 gap-2"
-            >
-              <span>🛒 Köp Fiskekort på iFiske →</span>
-            </a>
+            
+            {selectedLake.isFree ? (
+              <div className="bg-emerald-500/20 border border-emerald-500/50 p-3 rounded-xl flex items-center gap-3">
+                <span className="text-2xl">✅</span>
+                <p className="text-xs font-bold text-emerald-100">Fisket är markerat som gratis i denna sjö!</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-slate-200 leading-relaxed">
+                  Sök själv efter sjön på iFiske eller lokala webbplatser för att köpa fiskekort och se gällande regler.
+                </p>
+                <a 
+                  href="https://www.ifiske.se/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="inline-flex items-center justify-center w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-3 rounded-xl text-xs shadow-lg transition transform active:scale-95 gap-2"
+                >
+                  <span>🔍 Sök på iFiske.se →</span>
+                </a>
+              </>
+            )}
           </div>
 
           <div className="bg-slate-50 border p-4 rounded-2xl space-y-2 text-xs">
@@ -1222,19 +1235,35 @@ function MapView({ user, currentTheme, isPro, showToast, catches }) {
               name: suggestName, 
               rules: suggestRules || 'Standard', 
               fish: suggestFish || 'Diverse', 
+              isFree: suggestIsFree,
               lat: clickedCoords.lat, 
               lng: clickedCoords.lng, 
               authorUid: user?.uid || null,
               status: 'pending', 
               createdAt: firebase.firestore.FieldValue.serverTimestamp() 
             });
-            setShowSuggestModal(false); setClickedCoords(null); showToast("Sjö inskickad för granskning av Admin!");
+            setShowSuggestModal(false); 
+            setClickedCoords(null); 
+            setSuggestName(''); 
+            setSuggestRules(''); 
+            setSuggestFish(''); 
+            setSuggestIsFree(false);
+            showToast("Sjö inskickad för granskning av Admin!");
           }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
             <h3 className="font-bold text-lg">Föreslå Sjö</h3>
+            
             <input type="text" placeholder="Sjöns namn" value={suggestName} onChange={e => setSuggestName(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            
             <input type="text" placeholder="Fiskarter" value={suggestFish} onChange={e => setSuggestFish(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+            
             <textarea placeholder="Regler..." value={suggestRules} onChange={e => setSuggestRules(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-20 resize-none" />
-            <div className="flex gap-2">
+            
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 py-1 cursor-pointer">
+              <input type="checkbox" checked={suggestIsFree} onChange={e => setSuggestIsFree(e.target.checked)} className="rounded text-teal-600 focus:ring-teal-500 h-4 w-4" />
+              <span>Fisket är gratis (Inget fiskekort krävs)</span>
+            </label>
+
+            <div className="flex gap-2 pt-1">
               <button type="button" onClick={() => setShowSuggestModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
               <button type="submit" className="flex-1 bg-teal-700 text-white p-3 rounded-xl text-xs font-bold shadow">Skicka in</button>
             </div>
@@ -1437,7 +1466,7 @@ function CatchLogView({ user, t, currentTheme, profile, lures, showToast }) {
   );
 }
 
-// --- INSTÄLLNINGAR MED AVISERINGSVAL ---
+// --- INSTÄLLNINGAR MED AVISERINGSVAL & ADMINPANEL ---
 function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro, showToast, isAdmin, setIsAdmin, notifSettings, setNotifSettings }) {
   const [name, setName] = useState(profile.displayName || '');
   const [showPinModal, setShowPinModal] = useState(false);
@@ -1477,9 +1506,16 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
     showToast("Aviseringsinställningar sparade!");
   };
 
+  // ADMIN GODKÄNNER SJÖ
   const handleApproveLake = async (lake) => {
     await db.collection('artifacts').doc(appId).collection('approved_lakes').add({
-      name: lake.name, rules: lake.rules || 'Standardregler', fish: lake.fish || 'Alla arter', lat: lake.lat, lng: lake.lng, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      name: lake.name, 
+      rules: lake.rules || 'Standardregler', 
+      fish: lake.fish || 'Alla arter', 
+      isFree: lake.isFree || false, // Spara gratis-valet permanent
+      lat: lake.lat, 
+      lng: lake.lng, 
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     await db.collection('artifacts').doc(appId).collection('lake_suggestions').doc(lake.id).delete();
 
@@ -1565,7 +1601,10 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
               <p className="font-bold text-teal-300 text-[11px]">⏳ Väntande Sjöförslag ({pendingLakes.length}):</p>
               {pendingLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga väntande förslag.</p> : pendingLakes.map(l => (
                 <div key={l.id} className="bg-slate-800 p-2 rounded-xl space-y-1 border border-slate-700">
-                  <p className="font-bold text-white">🌊 {l.name}</p>
+                  <div className="flex justify-between items-start">
+                    <p className="font-bold text-white">🌊 {l.name}</p>
+                    {l.isFree && <span className="bg-emerald-500/20 text-emerald-300 text-[9px] px-1 rounded font-bold">Gratis</span>}
+                  </div>
                   <p className="text-[10px] text-slate-300">{l.fish || 'Fiskarter saknas'}</p>
                   <div className="flex gap-1 pt-1">
                     <button onClick={() => handleApproveLake(l)} className="flex-1 bg-emerald-600 py-1 rounded-lg text-[10px] font-bold">Godkänn</button>
@@ -1585,7 +1624,10 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
                         <span className="font-bold text-teal-300">🌊 {al.name}</span>
                         <button onClick={() => handleDeleteApprovedLake(al.id, al.name)} className="text-red-400 font-bold px-1.5 py-0.5 rounded bg-slate-700 hover:bg-red-950">Ta bort</button>
                       </div>
-                      <p className="text-[10px] text-slate-400">Fisk: {al.fish || 'Diverse'}</p>
+                      <div className="flex justify-between items-center text-[10px] text-slate-400">
+                         <p>Fisk: {al.fish || 'Diverse'}</p>
+                         {al.isFree && <span className="text-emerald-400 font-bold">Gratis</span>}
+                      </div>
                     </div>
                   ))}
                 </div>
