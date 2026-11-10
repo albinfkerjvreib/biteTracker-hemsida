@@ -30,7 +30,6 @@
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       .leaflet-container { z-index: 0; outline: none; }
       
-      /* Anpassade snygga kartikoner */
       .custom-map-icon {
         display: flex;
         align-items: center;
@@ -109,6 +108,17 @@ const themes = {
   sunset: { bg: 'bg-amber-800', text: 'text-amber-800', light: 'bg-amber-50' }
 };
 
+const getWeatherDetails = (code) => {
+  if (code === 0) return { icon: '☀️', text: 'Soligt' };
+  if ([1, 2].includes(code)) return { icon: '⛅', text: 'Halvklart' };
+  if (code === 3) return { icon: '☁️', text: 'Molnigt' };
+  if ([45, 48].includes(code)) return { icon: '🌫️', text: 'Dimma' };
+  if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return { icon: '🌧️', text: 'Regn' };
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return { icon: '❄️', text: 'Snö' };
+  if ([95, 96, 99].includes(code)) return { icon: '🌩️', text: 'Åska' };
+  return { icon: '☀️', text: 'Klart' };
+};
+
 // --- EGEN IN-APP MEDDELANDERUTA (TOAST-BANNER) ---
 function ToastNotification({ toast }) {
   if (!toast) return null;
@@ -127,7 +137,7 @@ function ProBenefitsList() {
     <div className="bg-slate-900/50 p-3 rounded-2xl border border-amber-500/30 text-left space-y-1.5 text-xs text-slate-200">
       <p className="font-bold text-amber-300 text-center text-xs">✨ Detta ingår i BiteTracker PRO:</p>
       <ul className="space-y-1 text-[11px] text-slate-300">
-        <li className="flex items-center gap-1.5"><span>📅</span> 7-dagars äkta väderprognos & nappindex</li>
+        <li className="flex items-center gap-1.5"><span>📅</span> 7-dagars äkta svensk väderprognos & nappindex</li>
         <li className="flex items-center gap-1.5"><span>🏆</span> Skapa & delta i privata fisketävlingar</li>
         <li className="flex items-center gap-1.5"><span>📦</span> Permanent sparande av beteslåda & fångster</li>
         <li className="flex items-center gap-1.5"><span>⚓</span> Spara egna privata kartmarkörer</li>
@@ -227,31 +237,57 @@ function AuthModal({ isOpen, onClose, user, currentTheme, showToast }) {
 function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, showToast, isAdmin }) {
   const [weather, setWeather] = useState(null);
   const [dailyForecast, setDailyForecast] = useState([]);
+  const [locationLabel, setLocationLabel] = useState('Stockholm');
 
   useEffect(() => {
-    const fetchWeather = async () => {
+    const fetchWeather = async (lat = 59.3293, lng = 18.0686, label = 'Stockholm') => {
       try {
-        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,windspeed_10m_max&timezone=Europe%2FStockholm');
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,wind_speed_10m_max&wind_speed_unit=ms&timezone=Europe%2FStockholm`);
         const data = await res.json();
+        
         if (data && data.current_weather) {
-          setWeather({ temp: Math.round(data.current_weather.temperature), wind: data.current_weather.windspeed });
+          const currDetails = getWeatherDetails(data.current_weather.weathercode);
+          setWeather({ 
+            temp: Math.round(data.current_weather.temperature), 
+            wind: (data.current_weather.windspeed).toFixed(1),
+            icon: currDetails.icon,
+            text: currDetails.text
+          });
         }
+
         if (data && data.daily && data.daily.time) {
           const days = data.daily.time.map((tStr, idx) => {
             const d = new Date(tStr);
             const dayName = d.toLocaleDateString('sv-SE', { weekday: 'short' });
+            const wCode = data.daily.weathercode ? data.daily.weathercode[idx] : 0;
+            const wDetails = getWeatherDetails(wCode);
+            const windVal = data.daily.wind_speed_10m_max ? data.daily.wind_speed_10m_max[idx] : (data.daily.windspeed_10m_max ? data.daily.windspeed_10m_max[idx] : 3.5);
+
             return {
               day: dayName.charAt(0).toUpperCase() + dayName.slice(1),
               maxTemp: Math.round(data.daily.temperature_2m_max[idx]),
               minTemp: Math.round(data.daily.temperature_2m_min[idx]),
-              wind: Math.round(data.daily.windspeed_10m_max[idx])
+              wind: Math.round(windVal),
+              icon: wDetails.icon,
+              text: wDetails.text
             };
           });
           setDailyForecast(days);
         }
-      } catch (err) { setWeather({ temp: 15, wind: 4.0 }); }
+      } catch (err) { 
+        setWeather({ temp: 15, wind: "3.5", icon: '☀️', text: 'Soligt' }); 
+      }
     };
-    fetchWeather();
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLocationLabel("Din plats");
+          fetchWeather(pos.coords.latitude, pos.coords.longitude, "Din plats");
+        },
+        () => { fetchWeather(59.3293, 18.0686, "Stockholm"); }
+      );
+    } else { fetchWeather(59.3293, 18.0686, "Stockholm"); }
   }, []);
 
   const handleLike = async (post) => {
@@ -283,26 +319,34 @@ function FeedView({ globalFeed, user, t, currentTheme, isPro, setShowAuthModal, 
       <div className="bg-gradient-to-br from-teal-800 to-slate-900 text-white p-4 rounded-2xl shadow-sm space-y-3">
         <div className="flex items-center justify-between border-b border-teal-700/50 pb-3">
           <div>
-            <span className="text-[10px] text-teal-300 font-black tracking-wider">VÄDER & NAPPINDEX (STOCKHOLM)</span>
-            <h3 className="font-bold text-lg flex items-center gap-1.5"><SunIcon className="h-5 w-5 text-amber-400"/> {weather ? `${weather.temp}°C` : '15°C'} • Vind {weather ? `${weather.wind} m/s` : '4 m/s'}</h3>
+            <span className="text-[10px] text-teal-300 font-black tracking-wider">SVENSKT VÄDER & NAPPINDEX ({locationLabel.toUpperCase()})</span>
+            <h3 className="font-bold text-lg flex items-center gap-1.5">
+              <span>{weather ? weather.icon : '☀️'}</span> 
+              <span>{weather ? `${weather.temp}°C` : '15°C'}</span> 
+              <span className="text-xs text-teal-200 font-normal">({weather ? weather.text : 'Soligt'})</span>
+              <span className="text-xs text-slate-300 ml-1">• Vind {weather ? `${weather.wind} m/s` : '3.5 m/s'}</span>
+            </h3>
           </div>
-          <div className="bg-amber-400 text-slate-900 font-black px-3 py-2 rounded-xl text-center text-xs shadow"><span>🔥 Nappindex</span><span className="block text-sm">9/10</span></div>
+          <div className="bg-amber-400 text-slate-900 font-black px-3 py-2 rounded-xl text-center text-xs shadow">
+            <span>🔥 Nappindex</span>
+            <span className="block text-sm">8/10</span>
+          </div>
         </div>
 
         <div>
           <div className="flex items-center justify-between text-xs mb-2">
-            <span className="font-bold text-teal-200 flex items-center gap-1"><CalendarIcon className="h-3.5 w-3.5"/> 7-Dagars Prognos</span>
+            <span className="font-bold text-teal-200 flex items-center gap-1"><CalendarIcon className="h-3.5 w-3.5"/> 7-Dagars Svensk Prognos</span>
             {isPro ? <span className="text-[10px] bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">PRO Aktiv</span> : <span className="text-[10px] text-slate-400">Logga in för PRO</span>}
           </div>
 
           {isPro ? (
             <div className="flex gap-2 overflow-x-auto no-scrollbar pt-1 pb-1">
               {dailyForecast.map((df, i) => (
-                <div key={i} className="bg-slate-800/80 border border-teal-600/30 p-2.5 rounded-xl min-w-[70px] text-center shrink-0">
+                <div key={i} className="bg-slate-800/80 border border-teal-600/30 p-2.5 rounded-xl min-w-[75px] text-center shrink-0">
                   <span className="text-[10px] font-bold text-slate-300 block">{df.day}</span>
-                  <span className="text-amber-400 text-sm block my-0.5">☀️</span>
+                  <span className="text-lg block my-0.5">{df.icon}</span>
                   <span className="text-xs font-black text-white block">{df.maxTemp}°</span>
-                  <span className="text-[9px] text-slate-400 block">{df.wind} m/s</span>
+                  <span className="text-[9px] text-teal-300 block font-medium">{df.wind} m/s</span>
                 </div>
               ))}
             </div>
@@ -518,8 +562,8 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
               </select>
             )}
             <div className="flex gap-2">
-              <button type="button" onClick={() => setShowSubmitModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-sm font-bold">Avbryt</button>
-              <button type="submit" className="flex-1 bg-teal-700 text-white p-3 rounded-xl text-sm font-bold shadow">Skicka in</button>
+              <button type="button" onClick={() => setShowSubmitModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
+              <button type="submit" className="flex-1 bg-teal-700 text-white p-3 rounded-xl text-xs font-bold shadow">Skicka in</button>
             </div>
           </form>
         </div>
@@ -528,7 +572,7 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
   );
 }
 
-// --- PROFIL MED FÅNGSTBILDER OCH RADERING ---
+// --- PROFIL ---
 function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onOpenSettings, catches, lures, showToast }) {
   const [bio, setBio] = useState(profile.bio || '');
   const [lureName, setLureName] = useState('');
@@ -662,7 +706,7 @@ function ProfileView({ user, profile, currentTheme, isPro, setShowAuthModal, onO
   );
 }
 
-// --- KARTA MED ANPASSADE IKONER ---
+// --- KARTA MED SÖKFUNKTION ---
 function MapView({ user, currentTheme, isPro, showToast }) {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef(null);
@@ -671,6 +715,7 @@ function MapView({ user, currentTheme, isPro, showToast }) {
   const tileLayerRef = useRef(null);
 
   const [mapStyle, setMapStyle] = useState('topo');
+  const [searchQuery, setSearchQuery] = useState('');
   const [approvedLakes, setApprovedLakes] = useState([]);
   const [privateMarkers, setPrivateMarkers] = useState([]);
   const [globalCatches, setGlobalCatches] = useState([]);
@@ -727,11 +772,31 @@ function MapView({ user, currentTheme, isPro, showToast }) {
     tileLayerRef.current = window.L.tileLayer(url).addTo(mapInstance.current);
   };
 
+  const handleSearchPlace = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        if (mapInstance.current) {
+          mapInstance.current.setView([lat, lon], 12);
+        }
+        showToast(`📍 Flyttade kartan till: ${data[0].display_name.split(',')[0]}`);
+      } else {
+        showToast("Kunde inte hitta platsen på kartan.");
+      }
+    } catch (err) {
+      showToast("Fel vid platssökning.");
+    }
+  };
+
   useEffect(() => {
     if (!mapInstance.current || !markersLayer.current || !window.L) return;
     markersLayer.current.clearLayers();
 
-    // ANPASSADE IKONER
     const lakeIcon = window.L.divIcon({ className: 'custom-map-icon bg-teal-700 text-white w-8 h-8', html: '🌊', iconSize: [32, 32], iconAnchor: [16, 16] });
     const catchIcon = window.L.divIcon({ className: 'custom-map-icon bg-emerald-600 text-white w-8 h-8', html: '🐟', iconSize: [32, 32], iconAnchor: [16, 16] });
     const privateIcon = window.L.divIcon({ className: 'custom-map-icon bg-amber-600 text-white w-8 h-8', html: '🔒', iconSize: [32, 32], iconAnchor: [16, 16] });
@@ -759,9 +824,20 @@ function MapView({ user, currentTheme, isPro, showToast }) {
   return (
     <div className="relative w-full h-[calc(100vh-140px)]">
       <div className="absolute top-4 left-4 right-4 z-[400] max-w-xl mx-auto space-y-2">
-        <div className="bg-teal-900/90 text-white p-2 rounded-xl text-[11px] text-center shadow font-semibold">
-          💡 Tryck var som helst på kartan för att skicka in sjöförslag eller spara privatslots!
-        </div>
+        {/* SÖKFÄLT FÖR STORA KARTAN */}
+        <form onSubmit={handleSearchPlace} className="flex gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl shadow-lg border">
+          <input 
+            type="text" 
+            placeholder="🔍 Sök plats eller sjö (t.ex. Vättern)..." 
+            value={searchQuery} 
+            onChange={e => setSearchQuery(e.target.value)} 
+            className="flex-1 px-3 py-1.5 bg-slate-100 rounded-xl text-xs outline-none font-medium"
+          />
+          <button type="submit" className="bg-teal-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow hover:bg-teal-800 transition">
+            Sök
+          </button>
+        </form>
+
         <div className="flex gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-lg border text-xs font-bold">
           <button onClick={() => setShowLakes(!showLakes)} className={`flex-1 py-1 rounded-xl ${showLakes ? 'bg-teal-700 text-white' : 'bg-slate-100'}`}>🌊 Sjöar</button>
           <button onClick={() => setShowCatches(!showCatches)} className={`flex-1 py-1 rounded-xl ${showCatches ? 'bg-emerald-600 text-white' : 'bg-slate-100'}`}>🐟 Fångster</button>
@@ -825,7 +901,7 @@ function MapView({ user, currentTheme, isPro, showToast }) {
   );
 }
 
-// --- LOGGA FÅNGST ---
+// --- LOGGA FÅNGST MED SÖK PÅ MINIKARTAN ---
 function CatchLogView({ user, t, currentTheme, profile, showToast }) {
   const [species, setSpecies] = useState('');
   const [weight, setWeight] = useState('');
@@ -838,6 +914,7 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
 
   const miniMapRef = useRef(null);
   const miniMapInstance = useRef(null);
+  const miniMarkerRef = useRef(null);
 
   useEffect(() => {
     if (!window.L || !miniMapRef.current || miniMapInstance.current) return;
@@ -855,7 +932,32 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
     });
 
     miniMapInstance.current = map;
+    miniMarkerRef.current = marker;
   }, []);
+
+  const handleSearchMiniMap = async () => {
+    if (!location.trim()) return;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        setCoords({ lat, lng });
+        if (miniMapInstance.current) {
+          miniMapInstance.current.setView([lat, lng], 12);
+        }
+        if (miniMarkerRef.current) {
+          miniMarkerRef.current.setLatLng([lat, lng]);
+        }
+        showToast(`📍 Minikartan flyttad till: ${data[0].display_name.split(',')[0]}`);
+      } else {
+        showToast("Hittade inte platsen på kartan.");
+      }
+    } catch (err) {
+      showToast("Fel vid sökning.");
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -885,10 +987,18 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
           <input type="number" placeholder="Längd (cm)" value={length} onChange={e => setLength(e.target.value)} className="p-3 bg-slate-50 border rounded-xl text-sm" />
         </div>
         <input type="text" placeholder="Bete / Drag" value={lure} onChange={e => setLure(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
-        <input type="text" placeholder="Plats / Sjö (skriv namn)" value={location} onChange={e => setLocation(e.target.value)} required className="w-full p-3 bg-slate-50 border rounded-xl text-sm" />
+        
+        {/* PLATS MED SÖK-KNAPP */}
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-700">Plats / Sjö:</label>
+          <div className="flex gap-2">
+            <input type="text" placeholder="Sök eller skriv plats..." value={location} onChange={e => setLocation(e.target.value)} required className="flex-1 p-3 bg-slate-50 border rounded-xl text-sm" />
+            <button type="button" onClick={handleSearchMiniMap} className="bg-teal-700 text-white font-bold px-3 py-2 rounded-xl text-xs shadow hover:bg-teal-800 shrink-0">🔍 Sök plats</button>
+          </div>
+        </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-bold text-slate-700">Placera ut markören på minikartan:</label>
+          <label className="text-xs font-bold text-slate-700">Placera ut markören på minikartan (drag/klicka):</label>
           <div ref={miniMapRef} className="w-full h-40 rounded-xl border shadow-inner z-0" />
         </div>
 
@@ -900,7 +1010,7 @@ function CatchLogView({ user, t, currentTheme, profile, showToast }) {
   );
 }
 
-// --- INSTÄLLNINGAR & ADMIN-PANEL (MED REDIGERING AV SJÖAR) ---
+// --- INSTÄLLNINGAR & ADMIN-PANEL ---
 function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro, showToast, isAdmin, setIsAdmin }) {
   const [name, setName] = useState(profile.displayName || '');
   const [showPinModal, setShowPinModal] = useState(false);
@@ -908,7 +1018,6 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
   const [pendingLakes, setPendingLakes] = useState([]);
   const [approvedLakes, setApprovedLakes] = useState([]);
   
-  // Redigerings-state för sjöar i Admin
   const [editingLake, setEditingLake] = useState(null);
   const [editName, setEditName] = useState('');
   const [editFish, setEditFish] = useState('');
@@ -1012,7 +1121,6 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
               <button onClick={() => { setIsAdmin(false); localStorage.removeItem('bitetracker_admin'); showToast("Utloggad från Admin"); }} className="text-[10px] text-slate-400 underline">Logga ut admin</button>
             </div>
 
-            {/* VÄNTANDE SJÖAR */}
             <div className="space-y-1.5">
               <p className="font-bold text-teal-300 text-[11px]">⏳ Väntande Sjöförslag ({pendingLakes.length}):</p>
               {pendingLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga väntande förslag.</p> : pendingLakes.map(l => (
@@ -1027,7 +1135,6 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
               ))}
             </div>
 
-            {/* GODKÄNDA SJÖAR MED REDIGERING */}
             <div className="space-y-1.5 pt-2 border-t border-slate-800">
               <p className="font-bold text-emerald-400 text-[11px]">✅ Alla Godkända Sjöar ({approvedLakes.length}):</p>
               {approvedLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga godkända sjöar ännu.</p> : (
@@ -1051,7 +1158,6 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
         )}
       </div>
 
-      {/* MODAL FÖR ATT REDIGERA EN SJÖ */}
       {editingLake && (
         <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
           <form onSubmit={handleSaveLakeEdit} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3 text-slate-800">
