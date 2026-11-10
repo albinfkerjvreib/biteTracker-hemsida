@@ -1528,4 +1528,244 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
               <span>🌊 Godkända Sjöförslag</span>
               <input type="checkbox" checked={notifSettings.lakeApproval} onChange={() => handleToggleNotif('lakeApproval')} className="rounded text-teal-600 focus:ring-teal-500 h-4 w-4" />
             </label>
-            <label className="flex items-center justify-between cursor-pointer border-t
+            <label className="flex items-center justify-between cursor-pointer border-t pt-2">
+              <span>☀️ Dagligt Bra Fiskeväder</span>
+              <input type="checkbox" checked={notifSettings.weatherAlerts} onChange={() => handleToggleNotif('weatherAlerts')} className="rounded text-teal-600 focus:ring-teal-500 h-4 w-4" />
+            </label>
+          </div>
+        </div>
+
+        <div className="space-y-2 pt-2 border-t">
+          <label className="text-xs font-bold text-slate-700">Välj Tema</label>
+          <div className="grid grid-cols-3 gap-2">
+            <button onClick={() => { setAppTheme('blue'); localStorage.setItem('bitetracker_theme', 'blue'); }} className="p-2.5 rounded-xl font-bold text-white bg-blue-900 text-xs">Blå</button>
+            <button onClick={() => { setAppTheme('teal'); localStorage.setItem('bitetracker_theme', 'teal'); }} className="p-2.5 rounded-xl font-bold text-white bg-teal-700 text-xs">Grön</button>
+            <button onClick={() => { setAppTheme('sunset'); localStorage.setItem('bitetracker_theme', 'sunset'); }} className="p-2.5 rounded-xl font-bold text-white bg-amber-800 text-xs">Solnedgång</button>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t">
+          {!isPro ? (
+            <button onClick={() => { onClose(); setShowAuthModal(true); }} className="w-full bg-amber-500 text-white font-bold p-3 rounded-xl text-xs shadow">Logga in för PRO</button>
+          ) : (
+            <div className="text-center text-xs font-bold text-amber-700 bg-amber-50 p-2.5 rounded-xl">✨ PRO Aktiv</div>
+          )}
+        </div>
+
+        {!isAdmin ? (
+          <button onClick={() => setShowPinModal(true)} className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-xs shadow">Admin-inloggning</button>
+        ) : (
+          <div className="bg-slate-900 text-white p-3.5 rounded-2xl space-y-3 text-xs border border-amber-500/30">
+            <div className="flex justify-between items-center">
+              <p className="font-bold text-amber-400 text-sm">🛡️ Admin-panel</p>
+              <button onClick={() => { setIsAdmin(false); localStorage.removeItem('bitetracker_admin'); showToast("Utloggad från Admin"); }} className="text-[10px] text-slate-400 underline">Logga ut admin</button>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="font-bold text-teal-300 text-[11px]">⏳ Väntande Sjöförslag ({pendingLakes.length}):</p>
+              {pendingLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga väntande förslag.</p> : pendingLakes.map(l => (
+                <div key={l.id} className="bg-slate-800 p-2 rounded-xl space-y-1 border border-slate-700">
+                  <p className="font-bold text-white">🌊 {l.name}</p>
+                  <p className="text-[10px] text-slate-300">{l.fish || 'Fiskarter saknas'}</p>
+                  <div className="flex gap-1 pt-1">
+                    <button onClick={() => handleApproveLake(l)} className="flex-1 bg-emerald-600 py-1 rounded-lg text-[10px] font-bold">Godkänn</button>
+                    <button onClick={() => handleDeleteSuggestion(l.id)} className="flex-1 bg-red-600 py-1 rounded-lg text-[10px] font-bold">Neka</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-1.5 pt-2 border-t border-slate-800">
+              <p className="font-bold text-emerald-400 text-[11px]">✅ Alla Godkända Sjöar ({approvedLakes.length}):</p>
+              {approvedLakes.length === 0 ? <p className="text-[10px] text-slate-400">Inga godkända sjöar ännu.</p> : (
+                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                  {approvedLakes.map(al => (
+                    <div key={al.id} className="bg-slate-800 p-2 rounded-xl border border-slate-700 space-y-1 text-[11px]">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-teal-300">🌊 {al.name}</span>
+                        <button onClick={() => handleDeleteApprovedLake(al.id, al.name)} className="text-red-400 font-bold px-1.5 py-0.5 rounded bg-slate-700 hover:bg-red-950">Ta bort</button>
+                      </div>
+                      <p className="text-[10px] text-slate-400">Fisk: {al.fish || 'Diverse'}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showPinModal && (
+        <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
+          <form onSubmit={(e) => { e.preventDefault(); if(pinInput === '6031') { setIsAdmin(true); localStorage.setItem('bitetracker_admin', 'true'); setShowPinModal(false); showToast("Admin-läge aktiverat!"); } else showToast("Fel pinkod!"); }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
+            <h3 className="font-bold text-lg text-slate-800">Admin Pinkod</h3>
+            <input type="password" placeholder="Ange pinkod..." value={pinInput} onChange={e => setPinInput(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-center font-mono text-lg" />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowPinModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
+              <button type="submit" className="flex-1 bg-slate-900 text-white p-3 rounded-xl font-bold text-xs shadow">Lås upp</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NavItem({ Icon, label, isActive, onClick, currentTheme, customIcon, badgeCount }) {
+  return (
+    <button onClick={onClick} className={`flex flex-col items-center justify-center py-1.5 px-2.5 min-w-[45px] rounded-xl transition relative ${ isActive ? `${currentTheme.text} ${currentTheme.light} font-bold scale-105` : 'text-slate-400' }`}>
+      <div className="relative">
+        {customIcon ? customIcon : <Icon className="h-5 w-5 mb-0.5"/>}
+        {badgeCount > 0 && (
+          <span className="absolute -top-1 -right-2.5 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white animate-pulse">
+            {badgeCount}
+          </span>
+        )}
+      </div>
+      <span className="text-[9px]">{label}</span>
+    </button>
+  );
+}
+
+// --- HUVUDAPPEN ---
+function FiskeAppen() {
+  const [user, setUser] = useState(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [activeTab, setActiveTab] = useState('feed');
+  const [catches, setCatches] = useState([]);
+  const [globalFeed, setGlobalFeed] = useState([]);
+  const [lures, setLures] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [notifSettings, setNotifSettings] = useState({ likesComments: true, lakeApproval: true, weatherAlerts: true });
+  const [profile, setProfile] = useState({});
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
+  const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
+  const [toast, setToast] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bitetracker_admin') === 'true');
+
+  const isPro = user && !user.isAnonymous;
+  const t = (key) => translations['sv']?.[key] || key;
+  const currentTheme = themes[appTheme] || themes.blue;
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => { setToast(null); }, 3500);
+  };
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      if (!currentUser) {
+        auth.signInAnonymously().catch(err => console.error(err));
+      } else {
+        setUser(currentUser);
+        setIsLoadingAuth(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user || user.isAnonymous) return;
+    const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile');
+    profileRef.get().then(async doc => {
+      const data = doc.exists ? doc.data() : {};
+      if (data.isOG === undefined) {
+        const usersSnap = await db.collection('artifacts').doc(appId).collection('users').get();
+        const isOG = usersSnap.size <= 25;
+        await profileRef.set({ isOG }, { merge: true });
+        setProfile(prev => ({ ...prev, isOG }));
+      } else { setProfile(data); }
+    });
+
+    const notifSetRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('notifications');
+    notifSetRef.get().then(doc => {
+      if (doc.exists) setNotifSettings(doc.data());
+    });
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsubC = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').onSnapshot(snap => { const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); setCatches(f); });
+    const unsubG = db.collection('artifacts').doc(appId).collection('public_feed').onSnapshot(snap => { const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); setGlobalFeed(f); });
+    const unsubL = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures').onSnapshot(snap => { const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); setLures(f); });
+    const unsubP = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').onSnapshot(docSnap => { if (docSnap.exists) setProfile(prev => ({ ...prev, ...docSnap.data() })); });
+    
+    let unsubN = () => {};
+    if (!user.isAnonymous) {
+      unsubN = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('notifications').orderBy('createdAt', 'desc').onSnapshot(snap => {
+        const list = []; snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+        setNotifications(list);
+      });
+    }
+
+    return () => { unsubC(); unsubG(); unsubL(); unsubP(); unsubN(); };
+  }, [user]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  if (isLoadingAuth) return <div className="flex h-screen items-center justify-center bg-slate-900 text-white"><h1 className="text-2xl font-black">BiteTracker Pro</h1></div>;
+
+  return (
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
+      <header className={`${currentTheme.bg} text-white p-4 shadow-md flex items-center justify-between z-10 shrink-0`}>
+        <div className="flex items-center gap-3">
+          <img src="179412295382.jpg" alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
+          <h1 className="text-xl font-bold">{t('appTitle')}</h1>
+        </div>
+        <button onClick={() => setShowAuthModal(true)} className="flex items-center gap-1.5 text-white/90 py-1 px-3 bg-black/20 rounded-xl text-xs font-bold">
+          <User className="h-4 w-4"/> {user?.isAnonymous ? 'Logga In' : (profile.displayName || user?.email)}
+        </button>
+      </header>
+
+      <main className="flex-1 overflow-y-auto pb-20">
+        {activeTab === 'feed' && <FeedView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} setShowAuthModal={setShowAuthModal} showToast={showToast} t={t} user={user} isAdmin={isAdmin} profile={profile} notifSettings={notifSettings}/>}
+        {activeTab === 'compete' && <CompetitionView currentTheme={currentTheme} globalFeed={globalFeed} isPro={isPro} showToast={showToast} t={t} user={user} catches={catches}/>}
+        {activeTab === 'map' && <MapView currentTheme={currentTheme} isPro={isPro} showToast={showToast} user={user} catches={catches}/>}
+        {activeTab === 'notifications' && <NotificationsView currentTheme={currentTheme} notifications={notifications} showToast={showToast} user={user}/>}
+        {activeTab === 'log' && <CatchLogView currentTheme={currentTheme} profile={profile} lures={lures} showToast={showToast} t={t} user={user}/>}
+        {activeTab === 'profile' && <ProfileView currentTheme={currentTheme} isPro={isPro} profile={profile} setShowAuthModal={setShowAuthModal} showToast={showToast} user={user} onOpenSettings={() => setShowSettingsModal(true)} catches={catches} lures={lures}/>}
+      </main>
+
+      <nav className="fixed bottom-0 w-full bg-white border-t border-slate-200 z-20 shadow">
+        <div className="flex justify-around items-center p-1.5">
+          <NavItem Icon={Compass} isActive={activeTab === 'feed'} label={t('nav_feed')} onClick={() => setActiveTab('feed')} currentTheme={currentTheme} />
+          <NavItem Icon={Trophy} isActive={activeTab === 'compete'} label="Tävling" onClick={() => setActiveTab('compete')} currentTheme={currentTheme} />
+          <NavItem Icon={MapComponent} isActive={activeTab === 'map'} label={t('nav_map')} onClick={() => setActiveTab('map')} currentTheme={currentTheme} />
+          <NavItem Icon={Bell} badgeCount={unreadCount} isActive={activeTab === 'notifications'} label="Notiser" onClick={() => setActiveTab('notifications')} currentTheme={currentTheme} />
+          <NavItem Icon={Fish} isActive={activeTab === 'log'} label={t('nav_log')} onClick={() => setActiveTab('log')} currentTheme={currentTheme} />
+          <NavItem 
+            Icon={User} 
+            customIcon={
+              profile?.avatar ? (
+                <img src={profile.avatar} alt="Profil" className={`h-5 w-5 rounded-full object-cover mb-0.5 border ${activeTab === 'profile' ? 'border-teal-600' : 'border-slate-300'}`} />
+              ) : null
+            }
+            isActive={activeTab === 'profile'} 
+            label={t('nav_profile')} 
+            onClick={() => setActiveTab('profile')} 
+            currentTheme={currentTheme} 
+          />
+        </div>
+      </nav>
+
+      <ToastNotification toast={toast} />
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} user={user} currentTheme={currentTheme} showToast={showToast} />
+      <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} user={user} profile={profile} appTheme={appTheme} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} currentTheme={currentTheme} isPro={isPro} showToast={showToast} isAdmin={isAdmin} setIsAdmin={setIsAdmin} notifSettings={notifSettings} setNotifSettings={setNotifSettings} />
+      <WelcomeProModal isOpen={showWelcomeModal && user?.isAnonymous} onClose={() => setShowWelcomeModal(false)} onLoginClick={() => setShowAuthModal(true)} />
+    </div>
+  );
+}
+
+try {
+    const rootElement = document.getElementById('root');
+    if (rootElement) createRoot(rootElement).render(<FiskeAppen/>);
+} catch (err) { console.error(err); }
+
+const loader = document.getElementById('loading-screen');
+if (loader) loader.remove();
+</script>
+</body>
+</html>
