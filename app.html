@@ -126,6 +126,31 @@ const themes = {
   sunset: { bg: 'bg-amber-800', text: 'text-amber-800', light: 'bg-amber-50' }
 };
 
+// --- SPELA UPP ETT DIGITALT "PLING" ---
+const playPingSound = () => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    osc.type = 'sine'; // Mjuk ton
+    osc.frequency.setValueAtTime(800, ctx.currentTime); // Ljus ton
+    osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0, ctx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.6);
+  } catch (e) { console.error("Kunde inte spela ljud", e); }
+};
+
 const getMoonPhase = (date = new Date()) => {
   let year = date.getFullYear();
   let month = date.getMonth() + 1;
@@ -1948,9 +1973,14 @@ function FiskeAppen() {
             if (change.type === 'added') {
               const data = change.doc.data();
               if (!data.read) {
+                // Spela det inbyggda ljudet
+                playPingSound();
+                
+                // Visa systemnotisen och be mobilen vibrera
                 new Notification("BiteTracker Pro", {
                   body: data.text,
-                  icon: "179412295382.jpg"
+                  icon: "179412295382.jpg",
+                  vibrate: [200, 100, 200]
                 });
               }
             }
