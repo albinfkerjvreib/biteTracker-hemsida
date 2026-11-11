@@ -1034,10 +1034,89 @@ function MapView({ user, currentTheme, isPro, showToast, catches }) {
     }
   };
 
-  // UTRITNING AV MARKÖRER & VÄRMEKARTA
+ // UTRITNING AV MARKÖRER & VÄRMEKARTA MED ZOOM-GÖMNING
   useEffect(() => {
     if (!mapInstance.current || !markersLayer.current || !window.L) return;
+    
+    // Töm befintliga markörer innan vi ritar om
     markersLayer.current.clearLayers();
+
+    if (heatLayerRef.current) {
+      mapInstance.current.removeLayer(heatLayerRef.current);
+      heatLayerRef.current = null;
+    }
+
+    const lakeIcon = window.L.divIcon({ className: 'custom-map-icon bg-teal-700 text-white w-8 h-8', html: '🌊', iconSize: [32, 32], iconAnchor: [16, 16] });
+    const catchIcon = window.L.divIcon({ className: 'custom-map-icon bg-emerald-600 text-white w-8 h-8', html: '🐟', iconSize: [32, 32], iconAnchor: [16, 16] });
+    const privateIcon = window.L.divIcon({ className: 'custom-map-icon bg-amber-600 text-white w-8 h-8', html: '🔒', iconSize: [32, 32], iconAnchor: [16, 16] });
+
+    if (showLakes) {
+      approvedLakes.forEach(l => {
+        if (l.lat && l.lng) {
+          const marker = window.L.marker([l.lat, l.lng], { icon: lakeIcon }).addTo(markersLayer.current);
+          marker.on('click', (e) => {
+            window.L.DomEvent.stopPropagation(e);
+            setSelectedLake(l);
+          });
+        }
+      });
+    }
+    if (showPrivate && isPro) {
+      privateMarkers.forEach(p => {
+        if (p.lat && p.lng) window.L.marker([p.lat, p.lng], { icon: privateIcon }).addTo(markersLayer.current).bindPopup(`<b>🔒 ${p.title}</b>`);
+      });
+    }
+    if (showCatches) {
+      globalCatches.forEach(c => {
+        if (c.lat && c.lng) {
+          const imgHtml = c.image ? `<img src="${c.image}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-top:4px;" />` : '';
+          window.L.marker([c.lat, c.lng], { icon: catchIcon }).addTo(markersLayer.current).bindPopup(`<b>🐟 ${c.species} (${c.weight} kg)</b><br><span style="font-size:11px;">${c.location || ''}</span>${imgHtml}`);
+        }
+      });
+    }
+
+    // VÄRMEKARTA (HEATMAP) OVERLAY
+    if (showHeatmap && isPro) {
+      const points = globalCatches.filter(c => c.lat && c.lng).map(c => [c.lat, c.lng, 0.8]);
+      if (points.length > 0 && window.L.heatLayer) {
+        heatLayerRef.current = window.L.heatLayer(points, { radius: 30, blur: 18, maxZoom: 14 }).addTo(mapInstance.current);
+      } else if (points.length > 0) {
+        // Reserv om plugin inte laddats
+        points.forEach(pt => {
+          window.L.circle([pt[0], pt[1]], { radius: 600, color: '#ef4444', fillColor: '#f97316', fillOpacity: 0.35, stroke: false }).addTo(markersLayer.current);
+        });
+      }
+    }
+
+    // -- NY KOD FÖR ATT DÖLJA MARKÖRER VID LÅG ZOOM --
+    const minZoomToShowMarkers = 7; // Ändra denna siffra om du vill (t.ex. 6 eller 8)
+
+    const updateMarkerVisibility = () => {
+      if (mapInstance.current.getZoom() < minZoomToShowMarkers) {
+        if (mapInstance.current.hasLayer(markersLayer.current)) {
+          mapInstance.current.removeLayer(markersLayer.current);
+        }
+      } else {
+        if (!mapInstance.current.hasLayer(markersLayer.current)) {
+          mapInstance.current.addLayer(markersLayer.current);
+        }
+      }
+    };
+
+    // Kör direkt vid start för att dölja dem om man börjar utzoomad
+    updateMarkerVisibility();
+
+    // Lyssna på när användaren zoomar
+    mapInstance.current.on('zoomend', updateMarkerVisibility);
+
+    return () => {
+      // Städa upp lyssnaren när komponenten renderas om
+      if (mapInstance.current) {
+        mapInstance.current.off('zoomend', updateMarkerVisibility);
+      }
+    };
+
+  }, [approvedLakes, privateMarkers, globalCatches, showLakes, showPrivate, showCatches, showHeatmap, isPro, leafletLoaded]);
 
     if (heatLayerRef.current) {
       mapInstance.current.removeLayer(heatLayerRef.current);
