@@ -708,7 +708,6 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
     showToast("✅ Bidrag inskickat till tävlingen!");
   };
 
-  // Filtrerar så man BARA ser tävlingar man är inbjuden till / gått med i
   const visibleCompetitions = competitions.filter(c => (c.participants || []).includes(user?.uid));
 
   return (
@@ -781,7 +780,6 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
         );
       })}
 
-      {/* MODAL FÖR ATT SKAPA TÄVLING */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
           <form onSubmit={handleCreateComp} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
@@ -825,7 +823,6 @@ function CompetitionView({ globalFeed, user, t, currentTheme, isPro, catches, sh
         </div>
       )}
 
-      {/* MODAL FÖR ATT SKICKA IN BIDRAG TILL TÄVLING */}
       {showSubmitModal && (
         <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
           <form onSubmit={handleSubmitCatch} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
@@ -1493,7 +1490,6 @@ function CatchLogView({ user, t, currentTheme, profile, lures, showToast }) {
       
     } catch(err) { 
       console.error(err);
-      // Denna rad gör att vi nu ser EXACT varför den kraschar:
       showToast("Fel: " + err.message); 
     }
   };
@@ -1586,7 +1582,6 @@ function CatchLogView({ user, t, currentTheme, profile, lures, showToast }) {
 
         <textarea placeholder="Beskrivning..." value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-sm h-20 resize-none" />
         
-        {/* SNYGG BILDPANEL / DROPZONE */}
         <div className="space-y-1">
           <label className="text-xs font-bold text-slate-700">Bild på fångsten:</label>
           
@@ -1614,7 +1609,7 @@ function CatchLogView({ user, t, currentTheme, profile, lures, showToast }) {
                       const canvas = document.createElement('canvas');
                       let w = img.width;
                       let h = img.height;
-                      const maxDim = 500; // Extra hård komprimering för att klara Firebase-gränsen
+                      const maxDim = 500; 
                       
                       if (w > maxDim || h > maxDim) {
                         if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
@@ -1626,7 +1621,6 @@ function CatchLogView({ user, t, currentTheme, profile, lures, showToast }) {
                       const ctx = canvas.getContext('2d');
                       ctx.drawImage(img, 0, 0, w, h);
                       
-                      // Base64 med 50% kvalitet
                       setImage(canvas.toDataURL('image/jpeg', 0.5));
                     };
                     img.src = ev.target.result;
@@ -1644,8 +1638,8 @@ function CatchLogView({ user, t, currentTheme, profile, lures, showToast }) {
   );
 }
 
-// --- INSTÄLLNINGAR MED AVISERINGSVAL & ADMINPANEL ---
-function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro, showToast, isAdmin, setIsAdmin, notifSettings, setNotifSettings }) {
+// --- INSTÄLLNINGAR MED PUSH-NOTISER ---
+function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, setShowAuthModal, currentTheme, isPro, showToast, isAdmin, setIsAdmin, notifSettings, setNotifSettings, pushEnabled, requestPushPermission }) {
   const [name, setName] = useState(profile.displayName || '');
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
@@ -1684,13 +1678,12 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
     showToast("Aviseringsinställningar sparade!");
   };
 
-  // ADMIN GODKÄNNER SJÖ
   const handleApproveLake = async (lake) => {
     await db.collection('artifacts').doc(appId).collection('approved_lakes').add({
       name: lake.name, 
       rules: lake.rules || 'Standardregler', 
       fish: lake.fish || 'Alla arter', 
-      isFree: lake.isFree || false, // Spara gratis-valet permanent
+      isFree: lake.isFree || false, 
       lat: lake.lat, 
       lng: lake.lng, 
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1705,7 +1698,6 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
-
     showToast(`🌊 ${lake.name} har godkänts och sparats permanent!`);
   };
 
@@ -1732,7 +1724,19 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
         </form>
 
         <div className="space-y-2 pt-2 border-t">
-          <label className="text-xs font-bold text-slate-700 block">🔔 Aviseringar & Notiser</label>
+          <label className="text-xs font-bold text-slate-700 block">📱 Push-notiser till Mobilen</label>
+          <button
+            type="button"
+            onClick={requestPushPermission}
+            className={`w-full py-2.5 rounded-xl text-xs font-bold border transition ${pushEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-300'}`}
+          >
+            {pushEnabled ? '✅ Push-notiser är Aktiva' : '🔔 Slå på system-notiser'}
+          </button>
+          <p className="text-[9px] text-slate-400 leading-tight">Gör att in-app notiser dyker upp som riktiga mobila notiser. (På iOS behöver du spara sidan till hemskärmen först).</p>
+        </div>
+
+        <div className="space-y-2 pt-2 border-t">
+          <label className="text-xs font-bold text-slate-700 block">🔔 In-App Aviseringar</label>
           <div className="space-y-2 bg-slate-50 p-3 rounded-2xl border text-xs">
             <label className="flex items-center justify-between cursor-pointer">
               <span>❤️ Gilla & 💬 Kommentarer</span>
@@ -1819,7 +1823,7 @@ function SettingsModal({ isOpen, onClose, user, profile, appTheme, setAppTheme, 
         <div className="fixed inset-0 bg-black/70 z-[3000] flex items-center justify-center p-4">
           <form onSubmit={(e) => { e.preventDefault(); if(pinInput === '6031') { setIsAdmin(true); localStorage.setItem('bitetracker_admin', 'true'); setShowPinModal(false); showToast("Admin-läge aktiverat!"); } else showToast("Fel pinkod!"); }} className="bg-white p-5 rounded-3xl w-full max-w-sm space-y-3">
             <h3 className="font-bold text-lg text-slate-800">Admin Pinkod</h3>
-            <input type="password" placeholder="Ange pinkod..." value={pinInput} onChange={e => setPinInput(e.target.value)} className="w-full p-3 bg-slate-50 border rounded-xl text-center font-mono text-lg" />
+            <input type="password" placeholder="Ange pinkod..." value={pinInput} className="w-full p-3 bg-slate-50 border rounded-xl text-center font-mono text-lg" onChange={e => setPinInput(e.target.value)} />
             <div className="flex gap-2">
               <button type="button" onClick={() => setShowPinModal(false)} className="flex-1 bg-slate-100 p-3 rounded-xl text-xs font-bold">Avbryt</button>
               <button type="submit" className="flex-1 bg-slate-900 text-white p-3 rounded-xl font-bold text-xs shadow">Lås upp</button>
@@ -1864,6 +1868,7 @@ function FiskeAppen() {
   const [appTheme, setAppTheme] = useState(localStorage.getItem('bitetracker_theme') || 'blue');
   const [toast, setToast] = useState(null);
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem('bitetracker_admin') === 'true');
+  const [pushEnabled, setPushEnabled] = useState(false);
 
   const isPro = user && !user.isAnonymous;
   const t = (key) => translations['sv']?.[key] || key;
@@ -1872,6 +1877,23 @@ function FiskeAppen() {
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => { setToast(null); }, 3500);
+  };
+
+  useEffect(() => {
+    if ("Notification" in window) {
+      setPushEnabled(Notification.permission === 'granted');
+    }
+  }, []);
+
+  const requestPushPermission = async () => {
+    if (!("Notification" in window)) {
+      showToast("Din webbläsare stödjer tyvärr inte push-notiser.");
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    setPushEnabled(perm === 'granted');
+    if (perm === 'granted') showToast("✅ Push-notiser är nu aktiverade!");
+    else showToast("Du nekade push-notiser i webbläsaren.");
   };
 
   useEffect(() => {
@@ -1912,16 +1934,34 @@ function FiskeAppen() {
     const unsubL = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('lures').onSnapshot(snap => { const f = []; snap.forEach(d => f.push({ id: d.id, ...d.data() })); setLures(f); });
     const unsubP = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('profile').onSnapshot(docSnap => { if (docSnap.exists) setProfile(prev => ({ ...prev, ...docSnap.data() })); });
     
+    let isInitialLoad = true;
     let unsubN = () => {};
     if (!user.isAnonymous) {
       unsubN = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('notifications').orderBy('createdAt', 'desc').onSnapshot(snap => {
-        const list = []; snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+        const list = []; 
+        snap.forEach(d => list.push({ id: d.id, ...d.data() }));
         setNotifications(list);
+
+        // Skicka system-push-notis om vi har fått tillåtelse och det är en ny notis (inte vid första laddningen)
+        if (!isInitialLoad && pushEnabled) {
+          snap.docChanges().forEach(change => {
+            if (change.type === 'added') {
+              const data = change.doc.data();
+              if (!data.read) {
+                new Notification("BiteTracker Pro", {
+                  body: data.text,
+                  icon: "179412295382.jpg"
+                });
+              }
+            }
+          });
+        }
+        isInitialLoad = false;
       });
     }
 
     return () => { unsubC(); unsubG(); unsubL(); unsubP(); unsubN(); };
-  }, [user]);
+  }, [user, pushEnabled]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -1973,7 +2013,7 @@ function FiskeAppen() {
       <ToastNotification toast={toast} />
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} user={user} currentTheme={currentTheme} showToast={showToast} />
-      <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} user={user} profile={profile} appTheme={appTheme} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} currentTheme={currentTheme} isPro={isPro} showToast={showToast} isAdmin={isAdmin} setIsAdmin={setIsAdmin} notifSettings={notifSettings} setNotifSettings={setNotifSettings} />
+      <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} user={user} profile={profile} appTheme={appTheme} setAppTheme={setAppTheme} setShowAuthModal={setShowAuthModal} currentTheme={currentTheme} isPro={isPro} showToast={showToast} isAdmin={isAdmin} setIsAdmin={setIsAdmin} notifSettings={notifSettings} setNotifSettings={setNotifSettings} pushEnabled={pushEnabled} requestPushPermission={requestPushPermission} />
       <WelcomeProModal isOpen={showWelcomeModal && user?.isAnonymous} onClose={() => setShowWelcomeModal(false)} onLoginClick={() => setShowAuthModal(true)} />
     </div>
   );
