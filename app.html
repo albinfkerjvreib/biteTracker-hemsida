@@ -1479,7 +1479,7 @@ function CatchLogView({ user, t, currentTheme, profile, lures, showToast }) {
     try {
       const data = {
         species: finalSpecies, weight: parseFloat(weight), length: length ? parseFloat(length) : null,
-        lure: finalLure, description, image, location, lat: coords.lat, lng: coords.lng,
+        lure: finalLure, description, image: image || null, location, lat: coords.lat, lng: coords.lng,
         authorName: profile.displayName || 'Fiskare', isOG: profile.isOG || false,
         authorUid: user.uid, avatar: profile.avatar || null,
         comments: [],
@@ -1487,9 +1487,15 @@ function CatchLogView({ user, t, currentTheme, profile, lures, showToast }) {
       };
       await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('catches').add(data);
       await db.collection('artifacts').doc(appId).collection('public_feed').add(data);
+      
       setSpecies(''); setCustomSpecies(''); setWeight(''); setLength(''); setSelectedLureOption(''); setCustomLure(''); setDescription(''); setImage(null); setLocation('');
-      showToast("✅ Din fångst har sparats och publicerats i flödet!");
-    } catch(err) { showToast("Fel vid sparande av fångst."); }
+      showToast("✅ Din fångst har sparats och publicerats!");
+      
+    } catch(err) { 
+      console.error(err);
+      // Denna rad gör att vi nu ser EXACT varför den kraschar:
+      showToast("Fel: " + err.message); 
+    }
   };
 
   return (
@@ -1606,13 +1612,22 @@ function CatchLogView({ user, t, currentTheme, profile, lures, showToast }) {
                     const img = new window.Image();
                     img.onload = () => {
                       const canvas = document.createElement('canvas');
-                      const maxW = 800;
-                      const scale = img.width > maxW ? maxW / img.width : 1;
-                      canvas.width = img.width * scale;
-                      canvas.height = img.height * scale;
+                      let w = img.width;
+                      let h = img.height;
+                      const maxDim = 500; // Extra hård komprimering för att klara Firebase-gränsen
+                      
+                      if (w > maxDim || h > maxDim) {
+                        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                      }
+                      
+                      canvas.width = w;
+                      canvas.height = h;
                       const ctx = canvas.getContext('2d');
-                      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                      setImage(canvas.toDataURL('image/jpeg', 0.7));
+                      ctx.drawImage(img, 0, 0, w, h);
+                      
+                      // Base64 med 50% kvalitet
+                      setImage(canvas.toDataURL('image/jpeg', 0.5));
                     };
                     img.src = ev.target.result;
                   };
